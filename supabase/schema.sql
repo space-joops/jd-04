@@ -9,8 +9,9 @@
 --   보관하는 uuid — 이름이 같아도 다른 펫이 섞이지 않는 경쟁 키.
 --   누적 쓰레기(total_eaten)·누적 점수·단판 최고를 여기서 관리한다.
 -- - scores: 게임 한 판 = 한 행 (단판 랭킹의 원천).
--- - 쓰기는 전부 RPC 함수 submit_result 하나로만 — anon의 직접 INSERT/UPDATE를
---   막아서, 누적치가 클라이언트 계산이 아니라 DB 안에서 원자적으로 굴러가게 한다.
+-- - 펫 이름은 유니크(대소문자 무시) — register_pet이 등록 시점에 선점한다.
+-- - 쓰기는 전부 RPC 두 개(register_pet·submit_result)로만 — anon의 직접
+--   INSERT/UPDATE를 막아서, 이름 선점과 누적 가산이 DB 안에서 원자적으로 굴러간다.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -31,6 +32,29 @@ create table if not exists public.pets (
 -- 누적 랭킹의 유일한 읽기 패턴 그대로 인덱스
 create index if not exists pets_total_idx
   on public.pets (total_eaten desc, updated_at asc);
+
+-- ----------------------------------------------------------------------------
+-- 1-1) 펫 이름 유니크 (대소문자 무시) — 같은 이름의 펫은 하나만 (§8-1)
+-- 인덱스를 만들기 전에 이미 들어온 중복 이름을 정리한다:
+-- 수거량이 가장 많은 펫이 이름을 지키고, 나머지는 "이름·2"식으로 밀려난다.
+-- (밀려난 펫의 화면 속 이름은 다음 제출부터 DB 이름으로 어긋날 수 있다 —
+--  초기 운영 중 1회성 마이그레이션의 타협.)
+-- ----------------------------------------------------------------------------
+with ranked as (
+  select id, name,
+         row_number() over (
+           partition by lower(name)
+           order by total_eaten desc, created_at asc
+         ) as rn
+  from public.pets
+)
+update public.pets p
+set name = left(r.name, 7) || '·' || r.rn
+from ranked r
+where p.id = r.id and r.rn > 1;
+
+create unique index if not exists pets_name_unique_idx
+  on public.pets (lower(name));
 
 alter table public.pets enable row level security;
 
@@ -72,17 +96,16 @@ create policy "scores_select_all" on public.scores
 drop policy if exists "scores_insert_all" on public.scores;
 
 -- ----------------------------------------------------------------------------
--- 3) submit_result — 게임 한 판의 결과 제출 (유일한 쓰기 경로)
+-- 3) register_pet — 펫 등록 = 이름 선점 (이름 입력 화면에서 호출)
 --
--- security definer: 함수 소유자(관리자) 권한으로 실행되어 RLS를 지나간다.
--- 대신 함수 안에서 입력을 전부 검증한다 — check 제약과 같은 상한선.
--- 한 호출 안에서 펫 upsert(누적 가산)와 단판 기록 insert가 원자적으로 처리된다.
+-- 이름 검사를 게임오버가 아니라 "이름을 짓는 순간"에 해야, 한 판을 다
+-- 플레이하고 나서야 이름이 겹친다는 걸 아는 사고가 없다 (§8-1).
+-- 이미 등록된 id면 조용히 통과(멱등) — 이름은 최초 등록 때 고정, 개명 없음.
+-- 이름이 선점돼 있으면 유니크 인덱스 위반(23505) → PostgREST가 409로 응답.
 -- ----------------------------------------------------------------------------
-create or replace function public.submit_result(
+create or replace function public.register_pet(
   p_id uuid,
-  p_name text,
-  p_score integer,
-  p_eaten integer
+  p_name text
 ) returns void
 language plpgsql
 security definer
@@ -95,6 +118,35 @@ begin
   if clean_name is null or char_length(clean_name) not between 1 and 10 then
     raise exception 'invalid pet name';
   end if;
+  if exists (select 1 from pets where id = p_id) then
+    return; -- 이미 등록된 펫 — 멱등 통과 (게임오버 자기 치유 경로에서도 온다)
+  end if;
+  insert into pets (id, name) values (p_id, clean_name);
+end;
+$$;
+
+revoke all on function public.register_pet(uuid, text) from public;
+grant execute on function public.register_pet(uuid, text) to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 4) submit_result — 게임 한 판의 결과 제출 (유일한 쓰기 경로)
+--
+-- v2의 4-인자 버전(이름 포함)은 제거한다 — 이름은 register_pet이 선점하므로
+-- 제출 경로로 개명·무단 등록이 새면 안 된다. 등록 안 된 펫의 제출은 에러
+-- (클라이언트가 register_pet부터 다시 시도한다 — 자기 치유).
+-- ----------------------------------------------------------------------------
+drop function if exists public.submit_result(uuid, text, integer, integer);
+
+create or replace function public.submit_result(
+  p_id uuid,
+  p_score integer,
+  p_eaten integer
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
   -- 스폰 간격 바닥(0.42초)상 물리적으로 불가능한 값은 거른다 (조작의 하한선)
   if p_score is null or p_score not between 1 and 100000 then
     raise exception 'invalid score';
@@ -103,23 +155,23 @@ begin
     raise exception 'invalid eaten';
   end if;
 
-  -- 펫 upsert: 처음 보는 id면 등록, 알던 id면 누적 가산 + 개명 반영
-  insert into pets (id, name, total_score, total_eaten, best_score)
-  values (p_id, clean_name, p_score, p_eaten, p_score)
-  on conflict (id) do update set
-    name = excluded.name,
-    total_score = pets.total_score + excluded.total_score,
-    total_eaten = pets.total_eaten + excluded.total_eaten,
-    best_score = greatest(pets.best_score, excluded.best_score),
-    updated_at = now();
+  -- 누적 가산 — 등록된 펫만
+  update pets set
+    total_score = total_score + p_score,
+    total_eaten = total_eaten + p_eaten,
+    best_score = greatest(best_score, p_score),
+    updated_at = now()
+  where id = p_id;
+  if not found then
+    raise exception 'unregistered pet';
+  end if;
 
-  -- 단판 기록
+  -- 단판 기록 — 이름은 pets에 등록된 것을 쓴다 (스냅숏)
   insert into scores (name, score, eaten, pet_id)
-  values (clean_name, p_score, p_eaten, p_id);
+  select name, p_score, p_eaten, p_id from pets where id = p_id;
 end;
 $$;
 
--- anon(공개 키)에게 실행 권한만 준다 — 테이블 쓰기 권한은 여전히 없다
-revoke all on function public.submit_result(uuid, text, integer, integer) from public;
-grant execute on function public.submit_result(uuid, text, integer, integer)
+revoke all on function public.submit_result(uuid, integer, integer) from public;
+grant execute on function public.submit_result(uuid, integer, integer)
   to anon, authenticated;

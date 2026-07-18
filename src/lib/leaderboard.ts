@@ -103,19 +103,53 @@ export async function fetchTopTotals(
   }
 }
 
+/** 펫 등록(이름 선점) 결과 — "taken"만 사용자에게 다른 이름을 요구한다. */
+export type RegisterResult = "ok" | "taken" | "error";
+
 /**
- * 게임 한 판의 결과를 제출한다 — RPC submit_result 한 방으로
- * 펫 upsert(누적 가산·개명 반영)와 단판 기록 insert가 함께 처리된다.
- * 성공 여부만 돌려준다 — 실패해도 게임엔 아무 일도 없다.
+ * 펫을 등록해 이름을 선점한다 (RPC register_pet).
+ * - "ok": 등록 완료 (이미 등록된 id도 멱등 통과)
+ * - "taken": 이름이 이미 선점됨 (유니크 위반 → 409) — 다른 이름을 지어야 한다
+ * - "error": 네트워크·서버 문제 — 게임을 막지 말고 다음 제출 때 다시 시도
+ */
+export async function registerPet(pet: StoredPet): Promise<RegisterResult> {
+  if (!leaderboardEnabled) return "error";
+  const clean = sanitizePetName(pet.name);
+  if (!clean) return "error";
+  try {
+    const res = await fetch(`${URL}/rest/v1/rpc/register_pet`, {
+      method: "POST",
+      headers: HEADERS,
+      body: JSON.stringify({ p_id: pet.id, p_name: clean }),
+    });
+    if (res.ok) return "ok";
+    if (res.status === 409) return "taken"; // unique_violation → PostgREST 409
+    return "error";
+  } catch {
+    return "error";
+  }
+}
+
+/** 기록 제출 결과 — "taken"은 오프라인 등록 펫의 이름이 그새 선점된 희귀 사례. */
+export type SubmitStatus = "ok" | "taken" | "fail";
+
+/**
+ * 게임 한 판의 결과를 제출한다.
+ * 등록부터 다시 확인한다(register_pet은 멱등) — 이름 입력 때 오프라인이라
+ * 등록을 건너뛴 펫도 여기서 자기 치유된다. 그 다음 RPC submit_result가
+ * 누적 가산과 단판 기록 insert를 원자적으로 처리한다.
+ * 실패해도 게임엔 아무 일도 없다.
  */
 export async function submitResult(
   pet: StoredPet,
   score: number,
   eaten: number,
-): Promise<boolean> {
-  if (!leaderboardEnabled) return false;
-  const clean = sanitizePetName(pet.name);
-  if (!clean || score <= 0) return false; // 빈 이름·0점은 보내지 않는다
+): Promise<SubmitStatus> {
+  if (!leaderboardEnabled) return "fail";
+  if (score <= 0) return "fail"; // 0점은 보내지 않는다
+  const reg = await registerPet(pet);
+  if (reg === "taken") return "taken";
+  // reg가 "error"여도 제출은 시도한다 — 이미 등록된 펫이면 성공한다
   try {
     const res = await fetch(`${URL}/rest/v1/rpc/submit_result`, {
       method: "POST",
@@ -123,13 +157,12 @@ export async function submitResult(
       // 정수로 내림 — RPC 검증(정수 범위)에 걸리지 않게
       body: JSON.stringify({
         p_id: pet.id,
-        p_name: clean,
         p_score: Math.floor(score),
         p_eaten: Math.floor(eaten),
       }),
     });
-    return res.ok;
+    return res.ok ? "ok" : "fail";
   } catch {
-    return false;
+    return "fail";
   }
 }

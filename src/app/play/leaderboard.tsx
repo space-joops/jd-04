@@ -39,7 +39,7 @@ export function Leaderboard({ score, eaten, pet }: Props) {
   // undefined = 불러오는 중, null = 실패(목록 숨김), 배열 = 표시
   const [runs, setRuns] = useState<RunRow[] | null | undefined>(undefined);
   const [totals, setTotals] = useState<TotalRow[] | null | undefined>(undefined);
-  const [sendFailed, setSendFailed] = useState(false);
+  const [sendError, setSendError] = useState<"" | "fail" | "taken">("");
 
   useEffect(() => {
     let alive = true; // 재시작으로 언마운트된 뒤 도착한 응답이 setState 못 하게
@@ -47,8 +47,8 @@ export function Leaderboard({ score, eaten, pet }: Props) {
       // 1) 이번 판 기록 자동 제출 — 0점은 보낼 것이 없다.
       //    제출을 기다렸다가 조회해야 방금 판이 순위표에 반영돼 보인다.
       if (score > 0) {
-        const ok = await submitResult(pet, score, eaten);
-        if (alive && !ok) setSendFailed(true);
+        const status = await submitResult(pet, score, eaten);
+        if (alive && status !== "ok") setSendError(status);
       }
       // 2) 단판·누적 순위를 같이 가져온다
       const [r, t] = await Promise.all([fetchTopRuns(), fetchTopTotals()]);
@@ -119,9 +119,15 @@ export function Leaderboard({ score, eaten, pet }: Props) {
           </ol>
         ))}
 
-      {sendFailed && (
+      {sendError === "fail" && (
         <p className="font-pixel-ko text-xs" style={{ color: COLORS.danger }}>
-          기록 전송 실패 — 다음 판은 다시 시도해요
+          기록 전송 실패 — 다음 판에 다시 시도해요
+        </p>
+      )}
+      {sendError === "taken" && (
+        // 오프라인으로 등록한 펫의 이름이 그새 선점된 희귀 사례 (§8-1)
+        <p className="font-pixel-ko text-xs" style={{ color: COLORS.danger }}>
+          이름이 이미 선점돼 기록을 못 보냈어요
         </p>
       )}
     </div>
