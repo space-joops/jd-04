@@ -79,6 +79,27 @@ export function newPetId(): string {
   }
 }
 
+/** 음소거 설정 저장 키 (§10) — 한 번 끄면 다음 방문에도 꺼져 있어야 한다. */
+const MUTED_KEY = "sjs-muted";
+
+/** 음소거 상태를 읽는다. 없거나 실패하면 소리 켬. */
+export function loadMuted(): boolean {
+  try {
+    return localStorage.getItem(MUTED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** 음소거 상태를 저장한다. 실패해도 조용히 넘어간다. */
+export function saveMuted(muted: boolean): void {
+  try {
+    localStorage.setItem(MUTED_KEY, muted ? "1" : "0");
+  } catch {
+    // 저장 실패는 게임 진행에 영향을 주지 않는다.
+  }
+}
+
 /** 스토리 인트로를 봤는지 저장하는 키 — 첫 방문에만 자동 재생 (§4). */
 const INTRO_KEY = "sjs-intro";
 

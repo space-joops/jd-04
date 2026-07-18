@@ -20,6 +20,7 @@ export type GameUiState = {
   best: number;
   newBest: boolean;
   combo: number; // 현재 점수 배율 (§5-1) — 2 이상일 때만 HUD에 표시
+  paused: boolean; // 일시정지 (§4)
 };
 
 export function GameUi({
@@ -30,8 +31,17 @@ export function GameUi({
   best,
   newBest,
   combo,
+  paused,
   pet,
-}: GameUiState & { pet: StoredPet }) {
+  soundOn,
+  onToggleSound,
+  onTogglePause,
+}: GameUiState & {
+  pet: StoredPet;
+  soundOn: boolean;
+  onToggleSound: () => void;
+  onTogglePause: () => void;
+}) {
   return (
     <div
       className="pointer-events-none absolute inset-0"
@@ -51,10 +61,27 @@ export function GameUi({
             </div>
           )}
         </div>
-        <div className="flex items-start gap-3">
-          {/* 초기 화면(랜딩)으로 복귀 — 하트 옆. 이 링크만 pointer-events-auto이고
-              HUD 침범 금지선(y < r+64, §6-1) 안이라 조이스틱 조작과 안 겹친다.
-              페이지를 떠나면 useEffect 정리 함수가 rAF·오디오를 해제한다 (§12). */}
+        <div className="flex items-start gap-2">
+          {/* 컨트롤 묶음 — 전부 HUD 침범 금지선(y < r+64, §6-1) 안이라
+              조이스틱 조작과 안 겹치고, 버튼들만 pointer-events-auto다. */}
+          {phase === "playing" && (
+            <button
+              onClick={onTogglePause}
+              aria-label={paused ? "게임 재개" : "일시정지"}
+              className="pointer-events-auto mt-1 border-2 border-white/30 px-2 py-1 text-xs text-white/60 transition-colors hover:border-white/60 hover:text-white focus-visible:border-white"
+            >
+              {paused ? "▶" : "⏸"}
+            </button>
+          )}
+          <button
+            onClick={onToggleSound}
+            aria-label={soundOn ? "소리 끄기" : "소리 켜기"}
+            className="pointer-events-auto mt-1 border-2 border-white/30 px-2 py-1 text-xs text-white/60 transition-colors hover:border-white/60 hover:text-white focus-visible:border-white"
+          >
+            {soundOn ? "🔊" : "🔇"}
+          </button>
+          {/* 초기 화면(랜딩)으로 복귀 — 페이지를 떠나면 useEffect 정리 함수가
+              rAF·오디오를 해제한다 (§12). */}
           <Link
             href="/"
             aria-label="처음 화면으로 돌아가기"
@@ -72,6 +99,21 @@ export function GameUi({
           </div>
         </div>
       </div>
+
+      {/* ---- 일시정지 오버레이 (§4) — 탭하면 캔버스가 받아서 재개한다 ---- */}
+      {phase === "playing" && paused && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/50 text-center">
+          <p
+            className="text-4xl font-bold md:text-5xl"
+            style={{ color: COLORS.accent, textShadow: "4px 4px 0 #000" }}
+          >
+            PAUSED
+          </p>
+          <p className="animate-pulse text-xl text-white md:text-2xl">
+            TAP TO RESUME
+          </p>
+        </div>
+      )}
 
       {/* ---- 타이틀 ---- */}
       {phase === "title" && (

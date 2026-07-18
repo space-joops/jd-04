@@ -44,8 +44,10 @@ import { vibrate } from "@/lib/haptics";
 import {
   type StoredPet,
   loadBest,
+  loadMuted,
   loadPet,
   saveBest,
+  saveMuted,
   savePet,
 } from "@/lib/storage";
 import { PetNameGate } from "./pet-name";
@@ -59,6 +61,7 @@ import {
   playHit,
   playPowerup,
   playStar,
+  setMuted,
 } from "@/lib/sound";
 import { GameUi, type GameUiState } from "./game-ui";
 
@@ -162,7 +165,28 @@ function GameCore({ pet }: { pet: StoredPet }) {
     best: 0,
     newBest: false,
     combo: 1,
+    paused: false,
   });
+
+  // --- 소리 토글 (§10): 설정은 localStorage에 기억, 실제 음소거는 sound.ts ---
+  // GameCore는 펫 게이트 통과 후 클라이언트에서만 마운트되므로
+  // lazy 초기화로 localStorage를 읽어도 SSR과 어긋나지 않는다.
+  const [soundOn, setSoundOn] = useState(() => {
+    const m = loadMuted();
+    setMuted(m);
+    return !m;
+  });
+  const toggleSound = () => {
+    setSoundOn((prev) => {
+      const next = !prev;
+      setMuted(!next);
+      saveMuted(!next);
+      return next;
+    });
+  };
+
+  // --- 일시정지 (§4): 실제 상태는 게임 클로저 안 — ref로 토글 함수만 받는다 ---
+  const pauseRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -224,6 +248,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     let invincible = 0; // 남은 무적 시간
     let shake = 0; // 남은 화면 흔들림 시간
     let overAt = 0; // 게임오버 시각 — 재시작 디바운스용
+    let paused = false; // 일시정지 (§4) — update만 멈추고 draw는 계속
 
     // --- 생명력 연출 상태 (§6-3) — 모든 phase에서 돈다 (타이틀 데모도 살아있게) ---
     let gazeX = 0; // 시선 방향 (지수 감쇠로 부드럽게 — 눈알이 튀지 않게)
@@ -234,7 +259,16 @@ function GameCore({ pet }: { pet: StoredPet }) {
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
     const pushUi = () =>
-      setUi({ phase, score, hearts, eaten, best, newBest, combo: comboMult() });
+      setUi({ phase, score, hearts, eaten, best, newBest, combo: comboMult(), paused });
+
+    /** 일시정지 토글 (§4). 멈출 때 조이스틱도 놓는다 — 재개 순간 폭주 방지. */
+    const setPaused = (p: boolean) => {
+      if (paused === p || phase !== "playing") return;
+      paused = p;
+      if (p) joyActive = false;
+      pushUi();
+    };
+    pauseRef.current = () => setPaused(!paused); // HUD ⏸ 버튼이 이걸 부른다
 
     // ------------------------------------------------------------------
     // 사건들
@@ -247,6 +281,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     const start = () => {
       junks = junks.filter(isFood);
       phase = "playing";
+      paused = false;
       score = 0;
       eaten = 0;
       hearts = TUNE.hearts;
@@ -784,7 +819,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
       // 낙하물이 화면을 뚫고 순간이동한다(터널링). 0.05초로 자른다 (§12).
       const dt = Math.min(TUNE.maxDt, (now - last) / 1000);
       last = now;
-      update(dt);
+      if (!paused) update(dt); // 일시정지: 세계는 멈추고 화면은 남는다 (§4)
       draw();
       raf = requestAnimationFrame(frame);
     };
@@ -808,6 +843,11 @@ function GameCore({ pet }: { pet: StoredPet }) {
           start();
         }
       } else {
+        // 일시정지 중의 탭은 조작이 아니라 "재개" (§4)
+        if (paused) {
+          setPaused(false);
+          return;
+        }
         // 조이스틱 활성화
         joyOx = x;
         joyOy = y;
@@ -850,6 +890,13 @@ function GameCore({ pet }: { pet: StoredPet }) {
       ({ w, h } = fitCanvas(canvas));
     };
 
+    // 백그라운드로 가면 자동 일시정지 (§4) — 전화·알림에 억울하게 죽지 않게.
+    // 복귀 시 자동 재개는 하지 않는다: 준비된 건 화면이지 사람이 아니다.
+    const onVisibility = () => {
+      if (document.hidden) setPaused(true);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
@@ -861,6 +908,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     // 유령 게임 루프가 계속 돈다.
     return () => {
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
@@ -879,7 +927,13 @@ function GameCore({ pet }: { pet: StoredPet }) {
         className="absolute inset-0 h-full w-full touch-none"
         aria-label="스페이스 죽스 게임 화면"
       />
-      <GameUi {...ui} pet={pet} />
+      <GameUi
+        {...ui}
+        pet={pet}
+        soundOn={soundOn}
+        onToggleSound={toggleSound}
+        onTogglePause={() => pauseRef.current?.()}
+      />
     </div>
   );
 }

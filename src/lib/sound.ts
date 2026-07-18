@@ -12,6 +12,13 @@
 
 let audio: AudioContext | null = null;
 
+/** 음소거 (§10) — 끄면 모든 chirp가 조용히 빠져나간다. 저장은 storage.ts 몫. */
+let muted = false;
+
+export function setMuted(m: boolean): void {
+  muted = m;
+}
+
 /** 사용자 제스처 핸들러 안에서 호출: 오디오를 켜거나(1회) 잠든 컨텍스트를 깨운다. */
 export function ensureAudio(): void {
   try {
@@ -48,7 +55,7 @@ function chirp(
   gain = 0.08,
   delay = 0,
 ): void {
-  if (!audio) return;
+  if (!audio || muted) return;
   try {
     const t0 = audio.currentTime + delay;
     const osc = audio.createOscillator();
