@@ -13,8 +13,11 @@
 
 import Link from "next/link";
 import { COLORS } from "@/lib/constants";
+// 서버 컴포넌트라 package.json을 빌드 시점에 직접 읽을 수 있다 — 버전 표기(§13)
+import pkg from "../../package.json";
 import { AttractSky } from "./attract-sky";
 import { BestScore } from "./best-score";
+import { InstallButton } from "./install-button";
 
 export default function Home() {
   return (
@@ -81,7 +84,7 @@ export default function Home() {
           <p>🔋 배터리를 먹으면 연료 충전</p>
         </section>
 
-        {/* ---- 시작 + 최고 기록 ---- */}
+        {/* ---- 시작 + 최고 기록 + 홈 화면 추가 ---- */}
         <div className="flex flex-col items-center gap-4">
           <Link
             href="/play"
@@ -95,11 +98,15 @@ export default function Home() {
             TAP TO START
           </Link>
           <BestScore />
+          <InstallButton />
         </div>
 
-        {/* ---- 각주 — 자매작 크로스오버 표기 ---- */}
+        {/* ---- 각주 — 자매작 크로스오버 표기 + 버전 ---- */}
         <footer className="font-pixel-ko mt-auto text-xs text-gray-500">
-          이 아이는 STELLAPET 프로젝트의 지상 육성장에서 자랐습니다.
+          이 아이는 STELLAPET 프로젝트의 지상 육성장에서 자랐습니다.{" "}
+          <span className="font-pixel text-[10px] text-gray-600">
+            v{pkg.version}
+          </span>
         </footer>
       </div>
     </main>

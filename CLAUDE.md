@@ -58,7 +58,7 @@
 | 라우트 | 역할 |
 |---|---|
 | `/` | 랜딩 페이지: 세계관 스토리(§2) + 규칙 + TAP TO START + 최고 기록(`BestScore`). 배경에서 **어트랙트 모드**(`AttractSky`) — 마스코트가 혼자 떨어지는 쓰레기를 받아먹는 오락실 대기 화면. 가시 없음, 60% 속도, 소리·점수 없음. |
-| `/play` | 게임 본편. 내부 상태 기계 `Phase = "title" → "playing" → "over"` |
+| `/play` | 게임 본편. 내부 상태 기계 `Phase = "title" → "playing" → "over"`. HUD 상단 중앙의 **HOME 버튼**으로 언제든 랜딩("/")으로 복귀 — 이 링크만 `pointer-events-auto`이며 HUD 침범 금지선 안이라 조이스틱과 안 겹친다. |
 
 **Phase 규칙:**
 - `title`: 게임 방법 안내. 배경에서 쓰레기가 60% 속도로 느긋하게 떨어지는 데모.
@@ -257,6 +257,13 @@
 - 성능: 중급 폰에서 60fps 유지. 화면 밖 오브젝트 즉시 제거로 배열 누적 방지.
 - 모바일 UX: 노치 대응(safe-area-inset), 길게 누르기/우클릭 메뉴 차단, 텍스트 선택 방지,
   상단 바 색까지 우주색(`themeColor`) — 몰입감.
+- **PWA 설치(홈 화면 추가)**: 웹 앱 매니페스트(`manifest.ts` → /manifest.webmanifest) +
+  앱 아이콘은 **코드로 생성**(`pwa-icon.tsx`, ImageResponse — 에셋 0개 원칙 §11.
+  mascot.ts의 도트 좌표를 div로 옮긴 것이라 도트를 바꾸면 함께 갱신).
+  설치 후 전체화면(fullscreen → standalone 폴백)·세로 고정. 랜딩의
+  "홈 화면에 추가" 버튼은 `beforeinstallprompt`가 올 때만 노출, iOS는
+  수동 안내 문구(공유 → 홈 화면에 추가), 미지원이면 조용히 생략.
+- **버전 표기**: `package.json`의 version을 빌드 타임에 읽어 랜딩 푸터에 `v{버전}` 상시 표시.
 - 접근성: 장식 요소에 `aria-hidden`, 포커스 링(focus-visible) 유지, HTML 텍스트로 정보 전달.
 - 이 저장소는 **프론트엔드 초급자 학습용**이다: 모든 코드에 "왜"를 설명하는 꼼꼼한 한글 주석.
   코드를 바꾸면 관련 주석·이 문서도 함께 갱신.
@@ -266,10 +273,16 @@
 ```
 src/
 ├── app/
-│   ├── page.tsx           "/" 랜딩 페이지: 스토리·규칙·시작 버튼 (서버 컴포넌트, §4)
+│   ├── page.tsx           "/" 랜딩 페이지: 스토리·규칙·시작 버튼·버전 (서버 컴포넌트, §4)
 │   ├── attract-sky.tsx    랜딩 배경 어트랙트 모드 — 마스코트 혼자 데모 플레이
 │   ├── best-score.tsx     최고 기록 표시 (useSyncExternalStore + storage 이벤트)
-│   ├── layout.tsx         루트 레이아웃 (전역 메타, themeColor)
+│   ├── install-button.tsx "홈 화면에 추가" 버튼 (beforeinstallprompt, iOS 안내)
+│   ├── manifest.ts        웹 앱 매니페스트 (PWA 설치, §13)
+│   ├── pwa-icon.tsx       앱 아이콘 코드 생성 (ImageResponse — mascot.ts 도트의 거울)
+│   ├── icon-192.png/      └ 매니페스트 아이콘 라우트 (192px)
+│   ├── icon-512.png/      └ 매니페스트 아이콘 라우트 (512px + 마스커블 겸용)
+│   ├── apple-icon.tsx     iOS 홈 화면 아이콘 (자동 링크)
+│   ├── layout.tsx         루트 레이아웃 (전역 메타, themeColor, appleWebApp)
 │   ├── globals.css        Tailwind + 전역 스타일 (픽셀 폰트 2종, 우주색 배경, 선택 방지)
 │   └── play/
 │       ├── page.tsx       "/play" 껍데기 (메타데이터·뷰포트)

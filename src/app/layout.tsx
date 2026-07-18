@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   title: "SPACE JOOPS · 우주 냠냠!",
   description:
     "하늘에서 떨어지는 우주쓰레기를 손가락으로 슥슥 받아먹는 모바일 캐주얼 게임",
+  // iOS 홈 화면 추가(§13): 독립 실행 + 상태바 반투명 — 매니페스트(manifest.ts)의
+  // iOS 짝꿍. 아이콘은 apple-icon.tsx가 자동으로 링크한다.
+  appleWebApp: {
+    capable: true,
+    title: "SPACE JOOPS",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 // 뷰포트 설정 — 게임의 몰입감과 조작감을 지키는 장치들 (§13).
