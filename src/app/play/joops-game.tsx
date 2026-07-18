@@ -46,6 +46,7 @@ import { PetNameGate } from "./pet-name";
 import {
   disposeAudio,
   ensureAudio,
+  playCombo,
   playEat,
   playGameOver,
   playHit,
@@ -80,6 +81,10 @@ const TUNE = {
   hearts: 3, // 시작 하트 (§8)
   invincibleTime: 1.4, // 피격 후 무적 — 없으면 하트가 연달아 증발한다
   blinkHz: 8, // 무적 중 초당 깜빡임 횟수
+
+  // --- 콤보 배율 (§5-1) ---
+  comboStep: 5, // 쓰레기 연속 몇 개마다 배율이 오르는가 (5, 10, 15…)
+  comboMaxMult: 5, // 배율 상한 ×5 — 무한히 커지면 한 번의 실수가 너무 아프다
 
   shakeTime: 0.35, // 피격 화면 흔들림 지속 (§10)
   shakeAmp: 7, // 흔들림 최대 진폭(px)
@@ -142,6 +147,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     eaten: 0,
     best: 0,
     newBest: false,
+    combo: 1,
   });
 
   useEffect(() => {
@@ -158,6 +164,12 @@ function GameCore({ pet }: { pet: StoredPet }) {
     let hearts = TUNE.hearts;
     let best = loadBest();
     let newBest = false;
+
+    // --- 콤보 (§5-1): 쓰레기를 놓치지 않고 연속으로 먹은 개수 ---
+    let combo = 0;
+    /** 현재 점수 배율: 5개마다 ×2, ×3… 최대 ×5. */
+    const comboMult = () =>
+      Math.min(TUNE.comboMaxMult, 1 + Math.floor(combo / TUNE.comboStep));
 
     // --- 조이스틱 상태 ---
     // 원점(Ox,Oy)은 "누른 지점", 손잡이(Cx,Cy)는 "지금 손가락 위치".
@@ -198,7 +210,8 @@ function GameCore({ pet }: { pet: StoredPet }) {
     let blinkLeft = 0; // 눈 감고 있는 남은 시간
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
-    const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest });
+    const pushUi = () =>
+      setUi({ phase, score, hearts, eaten, best, newBest, combo: comboMult() });
 
     // ------------------------------------------------------------------
     // 사건들
@@ -215,6 +228,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
       eaten = 0;
       hearts = TUNE.hearts;
       newBest = false;
+      combo = 0;
       mascot.r = TUNE.startR;
       vx = 0;
       vy = 0;
@@ -250,16 +264,29 @@ function GameCore({ pet }: { pet: StoredPet }) {
       } else if (j.kind === "star") {
         // 별 보너스 (§5): 하트가 닳아 있으면 점수 대신 하트 +1 —
         // 위기의 플레이어에게는 40점보다 하트 하나가 훨씬 절실하다.
+        // 별은 콤보를 올리지도 끊지도 않지만, 점수엔 배율이 실린다 (§5-1).
         if (hearts < TUNE.hearts) {
           hearts += 1;
           popups.push(makePopup("+♥", j.x, j.y, COLORS.heart));
         } else {
-          score += 40;
-          popups.push(makePopup("+40!", j.x, j.y, COLORS.accent));
+          const gain = 40 * comboMult();
+          score += gain;
+          popups.push(makePopup(`+${gain}!`, j.x, j.y, COLORS.accent));
         }
         playStar();
       } else {
-        score += 10;
+        // 콤보 (§5-1): 쓰레기 연속 획득마다 +1, 5개마다 배율이 오른다
+        const prevMult = comboMult();
+        combo += 1;
+        const mult = comboMult();
+        if (mult > prevMult) {
+          // 배율 상승의 순간 — 팝업 + 팡파레로 확실하게 축하 (§10)
+          popups.push(
+            makePopup(`COMBO x${mult}!`, mascot.x, mascot.y - mascot.r - 34, COLORS.accent),
+          );
+          playCombo();
+        }
+        score += 10 * mult;
         eaten += 1;
         mascot.r = Math.min(TUNE.maxR, mascot.r + TUNE.growPerEat);
         popups.push(
@@ -273,6 +300,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     /** 가시 피격: 하트 -1 + 무적 + 흔들림 + 축소 + 팝업 + 스파크 + 소리 + 진동. */
     const hit = () => {
       hearts -= 1;
+      combo = 0; // 아픈 날은 콤보도 끝 (§5-1)
       invincible = TUNE.invincibleTime;
       shake = TUNE.shakeTime;
       mascot.r = Math.max(TUNE.startR, mascot.r - TUNE.shrinkOnHit);
@@ -466,8 +494,22 @@ function GameCore({ pet }: { pet: StoredPet }) {
         }
 
         // 화면 밖 제거 — 배열이 무한히 쌓이면 성능이 샌다 (§13).
-        // 놓친 먹이 페널티는 없다 (캐주얼 지향, §5).
-        if (j.y > h + 70) junks.splice(i, 1);
+        // 놓친 먹이에 하트·점수 페널티는 없지만(캐주얼 지향, §5),
+        // 쓰레기를 놓치면 콤보는 끊긴다 (§5-1 — "안 놓치고 먹으면"의 정의).
+        // 별·연료는 보너스라 놓쳐도 콤보를 건드리지 않는다.
+        if (j.y > h + 70) {
+          if (
+            phase === "playing" &&
+            isFood(j) &&
+            j.kind !== "star" &&
+            j.kind !== "fuel" &&
+            combo > 0
+          ) {
+            combo = 0;
+            pushUi(); // HUD의 xN 표시를 지운다
+          }
+          junks.splice(i, 1);
+        }
       }
 
       // --- 팝업 글자 ---

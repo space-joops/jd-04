@@ -19,6 +19,7 @@ export type GameUiState = {
   eaten: number;
   best: number;
   newBest: boolean;
+  combo: number; // 현재 점수 배율 (§5-1) — 2 이상일 때만 HUD에 표시
 };
 
 export function GameUi({
@@ -28,6 +29,7 @@ export function GameUi({
   eaten,
   best,
   newBest,
+  combo,
   pet,
 }: GameUiState & { pet: StoredPet }) {
   return (
@@ -38,9 +40,17 @@ export function GameUi({
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
-      {/* ---- HUD: 왼쪽 점수, 오른쪽 HOME + 하트 ---- */}
+      {/* ---- HUD: 왼쪽 점수(+콤보), 오른쪽 HOME + 하트 ---- */}
       <div className="flex items-start justify-between px-5 pt-3 text-3xl tracking-widest">
-        <div>{score}</div>
+        <div className="flex flex-col items-start">
+          <div>{score}</div>
+          {/* 콤보 배율 (§5-1) — x2부터만 보여준다: x1은 정보가 아니라 소음 */}
+          {phase === "playing" && combo >= 2 && (
+            <div className="text-sm" style={{ color: COLORS.accent }}>
+              x{combo} COMBO
+            </div>
+          )}
+        </div>
         <div className="flex items-start gap-3">
           {/* 초기 화면(랜딩)으로 복귀 — 하트 옆. 이 링크만 pointer-events-auto이고
               HUD 침범 금지선(y < r+64, §6-1) 안이라 조이스틱 조작과 안 겹친다.

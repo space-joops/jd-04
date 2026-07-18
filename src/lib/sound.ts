@@ -96,3 +96,12 @@ export function playStar(): void {
   chirp("triangle", 880, 880, 0.09, 0.07, 0.08);
   chirp("triangle", 1320, 1320, 0.16, 0.07, 0.16);
 }
+
+/**
+ * 콤보 배율 상승 (§5-1): 옥타브 도약 2음 — 먹기(1음)보다 특별하고
+ * 별(3음)보다 가벼운, 딱 중간 크기의 축하.
+ */
+export function playCombo(): void {
+  chirp("triangle", 523, 523, 0.08, 0.07, 0);
+  chirp("triangle", 1046, 1046, 0.14, 0.07, 0.07);
+}
