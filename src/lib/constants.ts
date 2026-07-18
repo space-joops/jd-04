@@ -20,10 +20,10 @@ export const COLORS = {
  * "star"(별 보너스)는 백로그(§16)라 아직 없지만, 종류를 문자열 유니온으로 둔
  * 이유가 바로 확장이다 — 종류를 추가할 때 이 타입과 아래 표만 늘리면 된다.
  */
-export type JunkKind = "satellite" | "bolt" | "can" | "spring" | "hazard";
+export type JunkKind = "satellite" | "bolt" | "can" | "spring" | "hazard" | "fuel";
 
 /** 먹이 4종 — 스폰 확률 계산에서 "가시가 아닌 나머지 균등"에 쓰인다 (§9). */
-export const FOOD_KINDS = ["satellite", "bolt", "can", "spring"] as const;
+export const FOOD_KINDS = ["satellite", "bolt", "can", "spring", "fuel"] as const;
 
 /** 종류별 대표색 (§5 표의 원본). */
 export const JUNK_COLORS: Record<JunkKind, string> = {
@@ -32,6 +32,7 @@ export const JUNK_COLORS: Record<JunkKind, string> = {
   can: "#f9a8d4", // 분홍
   spring: "#c4b5fd", // 보라
   hazard: "#ff8080", // 빨강 (COLORS.danger와 같은 값)
+  fuel: "#66fcf1", // 연료 아이템 네온 민트
 };
 
 // ----------------------------------------------------------------------------

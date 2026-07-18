@@ -66,6 +66,15 @@ const TUNE = {
   demoSpeed: 0.6, // 타이틀 데모 낙하 속도 배율 (§9)
   demoInterval: 1.5, // 타이틀 데모 스폰 간격(초) — 지터 없음
   maxDt: 0.05, // dt 상한 — 백그라운드 탭 복귀 시 순간이동 방지 (§12)
+
+  // --- Joystick & Thrust ---
+  joystickMaxRadius: 60,
+  maxFuel: 3000,
+  fuelRegen: 600,
+  thrustSpeeds: [100, 250, 450], // 속도 더 낮춤
+  thrustCosts: [10, 40, 100], // 소모량 2배 증가
+  friction: 1.2, // 우주 관성: 천천히 감소하는 마찰
+  minSpeed: 30, // 최소 유지 속도
 } as const;
 
 type Phase = "title" | "playing" | "over";
@@ -98,14 +107,24 @@ export default function JoopsGame() {
     let best = loadBest();
     let newBest = false;
 
+    // --- Joystick State ---
+    let joyActive = false;
+    let joyOx = 0;
+    let joyOy = 0;
+    let joyCx = 0;
+    let joyCy = 0;
+    let thrustLevel = 0;
+    // number 명시: as const 리터럴 타입(3000)이 그대로 옮으면 재대입이 막힌다
+    let fuel: number = TUNE.maxFuel;
+    let vx = 0;
+    let vy = 0;
+
     // 타입을 명시하는 이유: TUNE은 as const라 startR이 리터럴 타입(24)이 되는데,
     // 그대로 두면 r에 다른 숫자를 대입할 수 없게 된다.
-    const mascot: { x: number; y: number; r: number; tx: number; ty: number } = {
+    const mascot: { x: number; y: number; r: number } = {
       x: w / 2,
       y: h * 0.72,
       r: TUNE.startR,
-      tx: w / 2, // 목표점(포인터 위치)
-      ty: h * 0.72,
     };
     let junks: Junk[] = [];
     const popups: Popup[] = [];
@@ -135,8 +154,10 @@ export default function JoopsGame() {
       hearts = TUNE.hearts;
       newBest = false;
       mascot.r = TUNE.startR;
-      mascot.tx = mascot.x;
-      mascot.ty = mascot.y;
+      vx = 0;
+      vy = 0;
+      fuel = TUNE.maxFuel;
+      joyActive = false;
       invincible = 0;
       shake = 0;
       spawnTimer = 0;
@@ -158,12 +179,17 @@ export default function JoopsGame() {
     /** 먹이 획득: 점수 + 성장 + "꿀꺽" 시작 + 팝업 + 소리 (§10 다중 피드백). */
     const eat = (j: Junk) => {
       j.eatT = 0; // 이제부터 update가 입으로 빨아들인다
-      score += 10;
-      eaten += 1;
-      mascot.r = Math.min(TUNE.maxR, mascot.r + TUNE.growPerEat);
-      popups.push(
-        makePopup(EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)], j.x, j.y),
-      );
+      if (j.kind === "fuel") {
+        fuel = Math.min(TUNE.maxFuel, fuel + 800);
+        popups.push(makePopup("FUEL UP!", j.x, j.y, COLORS.mascot));
+      } else {
+        score += 10;
+        eaten += 1;
+        mascot.r = Math.min(TUNE.maxR, mascot.r + TUNE.growPerEat);
+        popups.push(
+          makePopup(EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)], j.x, j.y),
+        );
+      }
       playEat();
       pushUi();
     };
@@ -222,16 +248,48 @@ export default function JoopsGame() {
 
       // --- 주인공 이동 ---
       if (phase === "playing") {
-        // 지수 감쇠 추적: 남은 거리의 일부씩 다가간다 — "살짝 미끄러지는 손맛"
-        const k = Math.min(1, dt * TUNE.followSpeed);
-        mascot.x += (mascot.tx - mascot.x) * k;
-        mascot.y += (mascot.ty - mascot.y) * k;
-        // 화면 밖·HUD 영역 침범 금지 (§6-1)
-        mascot.x = Math.max(mascot.r, Math.min(w - mascot.r, mascot.x));
-        mascot.y = Math.max(
-          mascot.r + TUNE.hudClearance,
-          Math.min(h - mascot.r, mascot.y),
-        );
+        if (joyActive && fuel > 0) {
+          const dx = joyCx - joyOx;
+          const dy = joyCy - joyOy;
+          const dist = Math.hypot(dx, dy);
+          
+          if (dist > 5) {
+            if (dist < 25) thrustLevel = 0;
+            else if (dist < 45) thrustLevel = 1;
+            else thrustLevel = 2;
+            
+            const cost = TUNE.thrustCosts[thrustLevel] * dt;
+            if (fuel >= cost) {
+              fuel -= cost;
+              const speed = TUNE.thrustSpeeds[thrustLevel];
+              vx += (dx / dist) * speed * dt;
+              vy += (dy / dist) * speed * dt;
+            } else {
+              fuel = 0;
+            }
+          }
+        } else {
+          fuel = Math.min(TUNE.maxFuel, fuel + TUNE.fuelRegen * dt);
+        }
+        
+        vx -= vx * TUNE.friction * dt;
+        vy -= vy * TUNE.friction * dt;
+        
+        // 최소 유지 속도 보정 (항상 우주를 떠다니게 함)
+        const currentSpeed = Math.hypot(vx, vy);
+        if (currentSpeed > 0 && currentSpeed < TUNE.minSpeed) {
+          vx = (vx / currentSpeed) * TUNE.minSpeed;
+          vy = (vy / currentSpeed) * TUNE.minSpeed;
+        }
+        
+        mascot.x += vx * dt;
+        mascot.y += vy * dt;
+        
+        // 화면 밖·HUD 영역 침범 금지 (벽에 튕김)
+        if (mascot.x < mascot.r) { mascot.x = mascot.r; vx *= -0.8; }
+        if (mascot.x > w - mascot.r) { mascot.x = w - mascot.r; vx *= -0.8; }
+        if (mascot.y < mascot.r + TUNE.hudClearance) { mascot.y = mascot.r + TUNE.hudClearance; vy *= -0.8; }
+        if (mascot.y > h - mascot.r) { mascot.y = h - mascot.r; vy *= -0.8; }
       } else {
         // 타이틀/게임오버: 화면 중앙 아래에서 sin 곡선으로 둥둥 (§6-1)
         mascot.x += (w / 2 - mascot.x) * Math.min(1, dt * 2);
@@ -319,12 +377,80 @@ export default function JoopsGame() {
         drawJunk(ctx, j, scale);
       }
 
+      // --- Thrust Exhaust Animation ---
+      if (joyActive && phase === "playing" && fuel > 0) {
+        const dx = joyCx - joyOx;
+        const dy = joyCy - joyOy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 5) {
+          ctx.save();
+          ctx.translate(mascot.x, mascot.y);
+          ctx.rotate(Math.atan2(dy, dx)); // 이동 방향을 바라보게 회전
+          
+          // 강도에 따른 불꽃 크기와 떨림
+          const flameLengths = [mascot.r * 1.5, mascot.r * 2.2, mascot.r * 3.5];
+          const flameWidths = [mascot.r * 0.5, mascot.r * 0.8, mascot.r * 1.3];
+          const len = flameLengths[thrustLevel] * (0.7 + Math.random() * 0.6); // 떨림 효과
+          const wid = flameWidths[thrustLevel];
+          
+          ctx.beginPath();
+          ctx.moveTo(-mascot.r + 5, wid / 2);
+          ctx.lineTo(-mascot.r - len, 0); // 꼬리(불꽃 끝)
+          ctx.lineTo(-mascot.r + 5, -wid / 2);
+          ctx.closePath();
+          
+          const thrustColors = ["#8ecbff", "#ffd166", "#ff8080"];
+          ctx.fillStyle = thrustColors[thrustLevel];
+          ctx.globalAlpha = 0.8;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
       // 무적 중 초당 8회 반투명 깜빡임 — "지금은 안 맞아요"의 시각적 전달 (§8)
       const blinking =
         invincible > 0 && Math.floor(elapsed * TUNE.blinkHz * 2) % 2 === 1;
       drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1);
 
       for (const p of popups) drawPopup(ctx, p);
+
+      // --- Virtual Joystick Draw ---
+      if (joyActive && phase === "playing") {
+        ctx.save();
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath();
+        ctx.arc(joyOx, joyOy, TUNE.joystickMaxRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(joyCx, joyCy, 15, 0, Math.PI * 2);
+        const thrustColors = ["#8ecbff", "#ffd166", "#ff8080"];
+        ctx.fillStyle = fuel > 0 ? thrustColors[thrustLevel] : "#555";
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // --- Fuel Bar Draw ---
+      if (phase === "playing") {
+        ctx.save();
+        const barW = 100;
+        const barH = 8;
+        const barX = w / 2 - barW / 2;
+        const barY = TUNE.hudClearance - 15;
+        
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(barX, barY, barW, barH);
+        
+        ctx.fillStyle = fuel > (TUNE.maxFuel * 0.2) ? "#66fcf1" : "#ff8080";
+        ctx.fillRect(barX, barY, barW * (fuel / TUNE.maxFuel), barH);
+        
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(barX, barY, barW, barH);
+        ctx.restore();
+      }
 
       ctx.restore();
     };
@@ -346,38 +472,56 @@ export default function JoopsGame() {
     raf = requestAnimationFrame(frame);
 
     // ------------------------------------------------------------------
-    // 입력 (포인터 하나가 조작의 전부 — §1)
+    // 입력 (버추얼 조이스틱)
     // ------------------------------------------------------------------
-    const setTarget = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mascot.tx = e.clientX - rect.left;
-      // 터치일 때만 위로 보정 — 손가락이 캐릭터를 가리면 안 되니까.
-      // 마우스는 커서가 작으니 보정 없음 (§6-1).
-      mascot.ty =
-        e.clientY -
-        rect.top -
-        (e.pointerType === "touch" ? TUNE.touchOffsetY : 0);
-    };
-
     const onPointerDown = (e: PointerEvent) => {
       // 오디오는 반드시 사용자 제스처 안에서 깨운다 (브라우저 자동재생 정책, §12)
       ensureAudio();
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
       if (phase === "title") {
         start();
-        setTarget(e);
       } else if (phase === "over") {
         // 죽는 순간 누르고 있던 손가락이 결과 화면을 스킵하는 사고 방지 (§4)
         if (elapsed - overAt >= TUNE.restartDebounce) {
           start();
-          setTarget(e);
         }
       } else {
-        setTarget(e);
+        // 조이스틱 활성화
+        joyOx = x;
+        joyOy = y;
+        joyCx = x;
+        joyCy = y;
+        joyActive = true;
       }
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (phase === "playing") setTarget(e);
+      if (phase === "playing" && joyActive) {
+        const rect = canvas.getBoundingClientRect();
+        let cx = e.clientX - rect.left;
+        let cy = e.clientY - rect.top;
+        
+        const dx = cx - joyOx;
+        const dy = cy - joyOy;
+        const dist = Math.hypot(dx, dy);
+        
+        // 반경 제한
+        if (dist > TUNE.joystickMaxRadius) {
+          cx = joyOx + (dx / dist) * TUNE.joystickMaxRadius;
+          cy = joyOy + (dy / dist) * TUNE.joystickMaxRadius;
+        }
+        joyCx = cx;
+        joyCy = cy;
+      }
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      joyActive = false;
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     };
 
     /** 길게 누르기/우클릭 메뉴가 게임을 끊지 않게 (§13). */
@@ -389,6 +533,8 @@ export default function JoopsGame() {
 
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerUp);
     canvas.addEventListener("contextmenu", onContextMenu);
     window.addEventListener("resize", onResize);
 
@@ -398,6 +544,8 @@ export default function JoopsGame() {
       cancelAnimationFrame(raf);
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("contextmenu", onContextMenu);
       window.removeEventListener("resize", onResize);
       disposeAudio();

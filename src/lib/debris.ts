@@ -198,6 +198,21 @@ export function drawJunk(
       ctx.stroke();
       break;
     }
+    case "fuel": {
+      // 배터리 모양 연료 아이템
+      ctx.fillStyle = JUNK_COLORS.fuel;
+      ctx.fillRect(-s * 0.4, -s * 0.7, s * 0.8, s * 1.4);
+      ctx.strokeStyle = COLORS.space;
+      ctx.strokeRect(-s * 0.4, -s * 0.7, s * 0.8, s * 1.4);
+      // 배터리 위쪽 전극
+      ctx.fillRect(-s * 0.2, -s * 0.9, s * 0.4, s * 0.2);
+      ctx.fillStyle = COLORS.space;
+      ctx.font = `bold ${Math.floor(s)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("F", 0, 0);
+      break;
+    }
   }
 
   ctx.restore();
