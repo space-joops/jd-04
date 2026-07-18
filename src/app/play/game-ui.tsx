@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 import { COLORS } from "@/lib/constants";
+import type { StoredPet } from "@/lib/storage";
 import { Leaderboard } from "./leaderboard";
 
 export type GameUiState = {
@@ -27,7 +28,8 @@ export function GameUi({
   eaten,
   best,
   newBest,
-}: GameUiState) {
+  pet,
+}: GameUiState & { pet: StoredPet }) {
   return (
     <div
       className="pointer-events-none absolute inset-0"
@@ -93,6 +95,10 @@ export function GameUi({
           >
             GAME OVER
           </h2>
+          {/* 이번 판의 주인공 — 펫 이름 (한글이라 font-pixel-ko, §11) */}
+          <p className="font-pixel-ko text-sm text-gray-400">
+            🛰 {pet.name}의 청소 일지
+          </p>
           <p className="mt-3 text-3xl md:text-4xl text-white">SCORE: {score}</p>
           <p className="text-lg md:text-xl text-gray-300">EATEN: {eaten} JUNK</p>
           {newBest ? (
@@ -103,7 +109,7 @@ export function GameUi({
             <p className="text-sm md:text-lg text-gray-400 mt-2">BEST: {best}</p>
           )}
           {/* 온라인 리더보드 — env 미설정이면 컴포넌트가 스스로 사라진다 (§8-1) */}
-          <Leaderboard score={score} eaten={eaten} />
+          <Leaderboard score={score} eaten={eaten} pet={pet} />
           <p
             className="mt-6 animate-pulse text-2xl md:text-3xl"
             style={{ color: COLORS.accent }}

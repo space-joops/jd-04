@@ -58,7 +58,7 @@
 | 라우트 | 역할 |
 |---|---|
 | `/` | 랜딩 페이지: 타이틀 + 규칙 + TAP TO START(`/play?start=1`) + 최고 기록(`BestScore`) + 앱 설치 버튼. 세계관 스토리(§2)는 **첫 방문에만 전체화면 스타워즈 크롤 인트로**(`StoryIntro`)로 1회 재생 — 18초, 탭/ESC로 스킵, 끝나면 자동 닫힘, 본 여부는 `localStorage`(키: `sjs-intro`). 이후 방문은 푸터의 "스토리 다시보기"로만 연다. 이렇게 한 이유 — 본문에 두면 모바일 첫 화면에서 버튼을 밀어내고, 푸터 아래는 아무도 안 본다. prefers-reduced-motion이면 크롤 대신 정지 화면. 배경에서 **어트랙트 모드**(`AttractSky`) — 마스코트가 혼자 떨어지는 쓰레기를 받아먹는 오락실 대기 화면. 가시 없음, 60% 속도, 소리·점수 없음. |
-| `/play` | 게임 본편. 내부 상태 기계 `Phase = "title" → "playing" → "over"`. **`?start=1`로 진입하면(랜딩의 TAP TO START) 타이틀을 건너뛰고 즉시 시작** — 두 번 탭하게 하지 않는다. 직접 방문은 평소처럼 타이틀 데모. 오디오는 게임 중 첫 터치가 깨운다(§12). HUD 오른쪽 **하트 옆 HOME 버튼**으로 언제든 랜딩("/")으로 복귀 — 이 링크만 `pointer-events-auto`이며 HUD 침범 금지선 안이라 조이스틱과 안 겹친다. |
+| `/play` | 게임 본편. **등록된 펫이 없으면 이름 등록 게이트(`PetNameGate`, §8-1)가 먼저 뜬다.** 내부 상태 기계 `Phase = "title" → "playing" → "over"`. **`?start=1`로 진입하면(랜딩의 TAP TO START) 타이틀을 건너뛰고 즉시 시작** — 두 번 탭하게 하지 않는다(게이트 통과 직후에도 동일). 직접 방문은 평소처럼 타이틀 데모. 오디오는 게임 중 첫 터치가 깨운다(§12). HUD 오른쪽 **하트 옆 HOME 버튼**으로 언제든 랜딩("/")으로 복귀 — 이 링크만 `pointer-events-auto`이며 HUD 침범 금지선 안이라 조이스틱과 안 겹친다. |
 
 **Phase 규칙:**
 - `title`: 게임 방법 안내. 배경에서 쓰레기가 60% 속도로 느긋하게 떨어지는 데모.
@@ -144,27 +144,40 @@
 - 무적 중에는 주인공이 초당 8회 반투명 깜빡임 (무적 상태의 시각적 전달).
 - 게임 오버 시 최고 기록이면 `localStorage`(키: `sjs-best`)에 저장.
 
-### 8-1. 온라인 리더보드 (Supabase)
+### 8-1. 온라인 리더보드 (Supabase) — 펫 이름 · 단판/누적 이원 경쟁
 
-게임오버 화면에 **전 세계 TOP 5** + 아케이드식 **3글자 이니셜 등록**.
+**펫 등록**: 첫 플레이 진입 시 펫 이름(1~10자, 한글 환영)을 한 번 짓는다
+(`pet-name.tsx` — 이름이 없으면 게임을 마운트하지 않는 게이트). 이때 만든
+uuid(`crypto.randomUUID`)와 이름이 `localStorage`(키: `sjs-pet`)에 저장되고,
+이후 모든 기록은 이 펫으로 자동 제출된다. **경쟁 키는 이름이 아니라 uuid** —
+이름이 같은 두 펫이 서로의 기록에 섞이면 안 된다. localStorage가 지워지면
+새 펫으로 다시 시작한다 (오락실 문법).
 
-- 기술: Supabase의 PostgREST API를 `fetch` 두 개로 직접 호출 (`src/lib/leaderboard.ts`).
-  SDK를 쓰지 않는 이유 — 요청이 "조회·등록" 둘뿐이라, 의존성보다 HTTP가 그대로
-  보이는 쪽이 학습용 저장소(§13)에 맞다.
+**두 개의 경쟁** (게임오버 화면에서 탭 전환):
+- **단판 TOP 5** (`scores` 테이블): 게임 한 판의 점수 랭킹. 동점은 먼저 세운 기록이 위.
+- **누적 TOP 5** (`pets` 테이블): 등록된 펫이 **통산 수거한 쓰레기 개수**(`total_eaten`)
+  랭킹. 연료·별은 eaten에 안 세므로 순수 쓰레기만 집계된다. 내 펫은 ★로 강조.
+
+**자동 제출**: 게임오버가 되면 이름 입력 없이 기록이 자동 전송된다(0점 제외).
+제출 완료를 기다렸다가 순위를 조회해 방금 판이 바로 반영돼 보인다.
+
+- 기술: Supabase PostgREST를 `fetch`로 직접 호출 (`src/lib/leaderboard.ts`) —
+  조회 2개(단판·누적) + RPC 1개. SDK를 쓰지 않는 이유: 의존성보다 HTTP가
+  그대로 보이는 쪽이 학습용 저장소(§13)에 맞다.
+- **쓰기는 RPC `submit_result` 하나로만**: 펫 upsert(누적 가산·개명 반영)와 단판
+  기록 insert가 DB 안에서 원자적으로 처리된다(security definer). anon 키로는
+  테이블에 직접 INSERT/UPDATE 불가 — 남의 누적치를 덮어쓸 방법이 없다.
+  함수 안 검증(이름 1~10자, 점수 1~100000, eaten 0~10000)이 쓰레기 값을 거른다.
+  익명 제출 자체의 조작은 완전히 못 막는다 — 아케이드 리더보드의 전통적 타협.
 - 설정: `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  (`.env.example` 참고), 테이블은 `supabase/schema.sql`을 SQL Editor에서 실행.
+  (`.env.example` 참고), `supabase/schema.sql`을 SQL Editor에서 실행 (v1에서
+  재실행하면 안전하게 마이그레이션된다).
 - **철저한 실패 허용 (§12)**: env 미설정이면 리더보드 UI가 통째로 숨는다 —
   클론만 받아도 게임은 로컬 최고 기록만으로 완전 동작. 네트워크·서버 오류도
   조용히 생략하고 게임을 절대 막지 않는다.
-- 이니셜: 대문자·숫자 1~3글자 (`sanitizeName`이 원본, DB check 제약도 동일 규칙).
-  한 번 입력하면 `localStorage`(키: `sjs-name`)에 기억해 다음 판부터 미리 채운다.
-- 등록은 판당 1회(성공 시 버튼이 사라짐), 0점은 등록 불가. 동점은 먼저 등록한 쪽이 위.
-- 보안 모델: anon key는 공개 키 — 권한의 원본은 DB의 RLS 정책이다 (읽기·추가만
-  허용, 수정·삭제 정책 없음 = 기본 거부). 익명 등록이라 조작을 완전히 막을 수는
-  없고, check 제약(점수 상한 등)으로 쓰레기 값만 거른다 — 아케이드 리더보드의 전통적 타협.
-- UI 규칙: 게임오버 오버레이는 `pointer-events-none`이 원칙이지만(§12), 이니셜
-  입력·SEND 버튼만 `pointer-events-auto` — 입력을 누른 게 "탭해서 재시작"으로
-  새지 않게 하는 장치.
+- UI 규칙: 게임오버 오버레이는 `pointer-events-none`이 원칙이지만(§12),
+  단판/누적 탭 버튼만 `pointer-events-auto` — 버튼을 누른 게 "탭해서
+  재시작"으로 새지 않게 하는 장치.
 
 ## 9. 스폰 · 난이도 곡선
 
@@ -304,9 +317,10 @@ src/
 │   ├── globals.css        Tailwind + 전역 스타일 (픽셀 폰트 2종, 우주색 배경, 선택 방지)
 │   └── play/
 │       ├── page.tsx       "/play" 껍데기 (메타데이터·뷰포트)
-│       ├── joops-game.tsx ★ 게임 본체: TUNE 상수, 게임 루프, 스폰/충돌/사건
+│       ├── joops-game.tsx ★ 게임 본체: 펫 게이트, TUNE 상수, 게임 루프, 스폰/충돌/사건
 │       ├── game-ui.tsx    HUD · 타이틀 · 게임오버 (표현 컴포넌트만)
-│       └── leaderboard.tsx 게임오버 리더보드 (TOP 5 + 이니셜 등록, §8-1)
+│       ├── pet-name.tsx   펫 이름 등록 게이트 (첫 플레이 1회, §8-1)
+│       └── leaderboard.tsx 게임오버 리더보드 (단판/누적 TOP 5 + 자동 제출, §8-1)
 └── lib/
     ├── constants.ts       색·폰트·낙하물 종류·대사 (분위기의 원본)
     ├── mascot.ts          주인공 그리기 (픽셀 슬라임)
@@ -316,11 +330,11 @@ src/
     ├── sound.ts           Web Audio 신시사이저
     ├── haptics.ts         진동 피드백 (미지원 환경 조용히 생략)
     ├── canvas.ts          DPR 대응 캔버스 리사이즈
-    ├── storage.ts         localStorage (최고 기록 sjs-best · 이니셜 sjs-name · 인트로 sjs-intro)
+    ├── storage.ts         localStorage (최고 기록 sjs-best · 펫 sjs-pet · 인트로 sjs-intro)
     └── leaderboard.ts     온라인 리더보드 Supabase REST 클라이언트 (§8-1)
 
 public/sw.js             서비스 워커 — 앱 셸 캐싱·오프라인·배포 갱신 (§13)
-supabase/schema.sql      scores 테이블 + RLS 정책 (Supabase SQL Editor에서 실행)
+supabase/schema.sql      pets·scores 테이블 + RLS + submit_result RPC (SQL Editor에서 실행)
 .env.example             Supabase 연결 정보 예시 (.env.local로 복사해 사용)
 ```
 

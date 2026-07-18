@@ -35,7 +35,14 @@ import {
   stepSpark,
 } from "@/lib/effects";
 import { vibrate } from "@/lib/haptics";
-import { loadBest, saveBest } from "@/lib/storage";
+import {
+  type StoredPet,
+  loadBest,
+  loadPet,
+  saveBest,
+  savePet,
+} from "@/lib/storage";
+import { PetNameGate } from "./pet-name";
 import {
   disposeAudio,
   ensureAudio,
@@ -95,7 +102,36 @@ const TUNE = {
 
 type Phase = "title" | "playing" | "over";
 
+/**
+ * 펫 게이트 (§8-1): 등록된 펫이 없으면 이름 등록 화면을 먼저 보여주고,
+ * 이름이 생긴 뒤에야 게임(GameCore)을 마운트한다. 게이트를 통과하면
+ * GameCore의 자동 시작(?start=1)이 평소처럼 동작한다.
+ */
 export default function JoopsGame() {
+  // undefined = 아직 localStorage를 못 읽음(첫 렌더 — SSR과 HTML을 맞추기 위해)
+  const [pet, setPet] = useState<StoredPet | null | undefined>(undefined);
+  useEffect(() => {
+    setPet(loadPet());
+  }, []);
+
+  if (pet === undefined) {
+    // 판정 전 한 프레임 — 우주색 빈 화면 (깜빡임 방지)
+    return <div className="fixed inset-0" style={{ backgroundColor: COLORS.space }} />;
+  }
+  if (pet === null) {
+    return (
+      <PetNameGate
+        onDone={(p) => {
+          savePet(p);
+          setPet(p);
+        }}
+      />
+    );
+  }
+  return <GameCore pet={pet} />;
+}
+
+function GameCore({ pet }: { pet: StoredPet }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // React가 아는 유일한 게임 상태. HUD·오버레이가 이걸 그린다.
@@ -680,7 +716,7 @@ export default function JoopsGame() {
         className="absolute inset-0 h-full w-full touch-none"
         aria-label="스페이스 죽스 게임 화면"
       />
-      <GameUi {...ui} />
+      <GameUi {...ui} pet={pet} />
     </div>
   );
 }

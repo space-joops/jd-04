@@ -30,24 +30,52 @@ export function saveBest(score: number): void {
   }
 }
 
-/** 리더보드 이니셜 저장 키 — 한 번 입력하면 다음 판부터 미리 채워 준다. */
-const NAME_KEY = "sjs-name";
+// ----------------------------------------------------------------------------
+// 등록된 펫 (§8-1) — 첫 플레이 때 지은 이름 + 경쟁 키(uuid)
+// 이름은 표시용일 뿐, 리더보드의 경쟁 키는 uuid다 — 이름이 같은 두 펫이
+// 서로의 누적 기록에 섞이면 안 된다.
+// ----------------------------------------------------------------------------
 
-/** 저장된 이니셜을 읽는다. 없거나 실패하면 빈 문자열. */
-export function loadName(): string {
+const PET_KEY = "sjs-pet";
+
+export type StoredPet = { id: string; name: string };
+
+/** 등록된 펫을 읽는다. 없거나 깨졌으면 null — 이름 입력 화면으로 보낸다. */
+export function loadPet(): StoredPet | null {
   try {
-    return localStorage.getItem(NAME_KEY) ?? "";
+    const raw = localStorage.getItem(PET_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<StoredPet>;
+    // 손으로 조작돼 깨진 값이 게임을 죽이지 않게 모양을 검사한다
+    if (typeof p.id === "string" && p.id && typeof p.name === "string" && p.name) {
+      return { id: p.id, name: p.name };
+    }
+    return null;
   } catch {
-    return "";
+    return null;
   }
 }
 
-/** 이니셜을 저장한다. 실패해도 조용히 넘어간다. */
-export function saveName(name: string): void {
+/** 펫을 저장한다. 실패해도 조용히 — 이번 세션 동안은 메모리의 펫으로 논다. */
+export function savePet(pet: StoredPet): void {
   try {
-    localStorage.setItem(NAME_KEY, name);
+    localStorage.setItem(PET_KEY, JSON.stringify(pet));
   } catch {
     // 저장 실패는 게임 진행에 영향을 주지 않는다.
+  }
+}
+
+/** 새 펫의 경쟁 키(uuid v4)를 만든다. */
+export function newPetId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    // 아주 옛 브라우저 폴백 — 형식만 uuid v4를 흉내 낸다 (DB uuid 컬럼 통과용)
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
   }
 }
 
