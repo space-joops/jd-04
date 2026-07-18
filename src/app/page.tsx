@@ -71,12 +71,20 @@ export default function Home() {
             TAP TO START
           </Link>
           <BestScore />
-          <Link
-            href="/rank"
-            className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
-          >
-            🏆 랭킹 보기
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/rank"
+              className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+            >
+              🏆 랭킹 보기
+            </Link>
+            <Link
+              href="/bag"
+              className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+            >
+              🎒 인벤토리
+            </Link>
+          </div>
           <InstallButton />
         </div>
 

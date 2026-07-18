@@ -76,6 +76,24 @@ export const JUNK_COLORS: Record<JunkKind, string> = {
   shield: "#7ee8b2", // 방패 민트 (마스코트를 지키는 색)
 };
 
+/** 종류별 한글 이름 — 인벤토리 도감(/bag) 등 HTML 표기용 (§8-2). */
+export const JUNK_NAMES: Record<JunkKind, string> = {
+  satellite: "인공위성",
+  bolt: "볼트",
+  can: "음료수 캔",
+  spring: "스프링",
+  glove: "우주인 장갑",
+  toolbag: "공구가방",
+  fairing: "로켓 페어링",
+  cubesat: "큐브샛",
+  hazard: "가시덩어리",
+  fuel: "배터리",
+  star: "별",
+  magnet: "자석",
+  slowmo: "시계",
+  shield: "방패",
+};
+
 // ----------------------------------------------------------------------------
 // 대사 — 레트로 아케이드풍 영어 (§2 톤 앤 매너).
 // 픽셀 폰트(Press Start 2P)에 한글 글리프가 없어 인게임 카피는 영어를 쓴다.

@@ -43,6 +43,7 @@ import {
 import { vibrate } from "@/lib/haptics";
 import {
   type StoredPet,
+  addToInventory,
   loadBest,
   loadMuted,
   loadPet,
@@ -317,6 +318,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     /** 먹이 획득: 점수 + 성장 + "꿀꺽" + 팝업 + 스파크 + 소리 + 진동 (§10). */
     const eat = (j: Junk) => {
       j.eatT = 0; // 이제부터 update가 입으로 빨아들인다
+      addToInventory(j.kind); // 로컬 도감에 +1 (§8-2) — 종류 불문, 먹으면 기록
       sparks.push(...makeSparks(j.x, j.y, JUNK_COLORS[j.kind], 7)); // 먹이색 7개
       vibrate(12); // 손끝에도 "냠" (§10) — 미지원 환경은 조용히 생략
       if (j.kind === "fuel") {

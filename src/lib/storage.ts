@@ -6,6 +6,8 @@
 // 전부 try-catch로 감싸 실패해도 게임이 계속 굴러가게 한다 (§12).
 // ============================================================================
 
+import type { JunkKind } from "./constants";
+
 /** 저장 키 — CLAUDE.md §8에 명세된 값. 바꾸면 기존 기록이 사라지니 주의. */
 const BEST_KEY = "sjs-best";
 
@@ -76,6 +78,50 @@ export function newPetId(): string {
       const v = c === "x" ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 인벤토리 (§8-2) — 지금까지 먹은 아이템을 종류별로 세는 로컬 도감.
+// 게임을 넘어 통산으로 쌓인다. 가시는 "먹는" 게 아니므로 안 들어온다.
+// ----------------------------------------------------------------------------
+
+const INVENTORY_KEY = "sjs-inventory";
+
+/** 종류별 수집 개수. 아직 못 먹은 종류는 키 자체가 없다. */
+export type Inventory = Partial<Record<JunkKind, number>>;
+
+/** 인벤토리를 읽는다. 없거나 깨졌으면 빈 도감. */
+export function loadInventory(): Inventory {
+  try {
+    const raw = localStorage.getItem(INVENTORY_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return {};
+    // 손으로 조작된 이상한 값(NaN·음수·문자열)이 UI를 깨지 않게 걸러 준다
+    const inv: Inventory = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+        inv[k as JunkKind] = Math.floor(v);
+      }
+    }
+    return inv;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * 방금 먹은 아이템을 도감에 +1 한다. 먹는 순간마다 바로 저장 —
+ * 게임 도중 탭이 닫혀도 그때까지의 수집은 남는다. 실패하면 조용히 (§12).
+ */
+export function addToInventory(kind: JunkKind): void {
+  try {
+    const inv = loadInventory();
+    inv[kind] = (inv[kind] ?? 0) + 1;
+    localStorage.setItem(INVENTORY_KEY, JSON.stringify(inv));
+  } catch {
+    // 저장 실패는 게임 진행에 영향을 주지 않는다.
   }
 }
 
