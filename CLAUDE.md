@@ -372,7 +372,8 @@ localStorage가 지워지면 새 펫으로 다시 시작한다 (오락실 문법
 - **버전 표기**: `package.json`의 version을 빌드 타임에 읽어 랜딩 푸터에 `v{버전}` 상시 표시.
 - 접근성: 장식 요소에 `aria-hidden`, 포커스 링(focus-visible) 유지, HTML 텍스트로 정보 전달.
 - 이 저장소는 **프론트엔드 초급자 학습용**이다: 모든 코드에 "왜"를 설명하는 꼼꼼한 한글 주석.
-  코드를 바꾸면 관련 주석·이 문서도 함께 갱신.
+  코드를 바꾸면 관련 주석·이 문서도 함께 갱신. 문법 해설은 `docs/` 학습 문서
+  시리즈가 담당한다 (주석은 "왜", docs는 "어떻게 읽나").
 
 ## 14. 파일 지도
 
@@ -417,6 +418,9 @@ src/
     └── leaderboard.ts     온라인 리더보드 Supabase REST 클라이언트 (§8-1)
 
 public/sw.js             서비스 워커 — 앱 셸 캐싱·오프라인·배포 갱신 (§13)
+docs/                    초급자용 학습 문서 시리즈 (README + 8챕터 — §13의
+                         "학습용 저장소" 원칙의 본편. 코드 문법을 실제 코드
+                         발췌로 해설. 코드가 크게 바뀌면 해당 챕터도 갱신할 것)
 supabase/schema.sql      pets·scores 테이블 + RLS + submit_result RPC (SQL Editor에서 실행)
 .env.example             Supabase 연결 정보 예시 (.env.local로 복사해 사용)
 ```
@@ -442,4 +446,3 @@ supabase/schema.sql      pets·scores 테이블 + RLS + submit_result RPC (SQL E
 ### 우주덕후 기획자의 아이디어 메모 (세계관 §2와 황금률 §7을 지키는 선에서)
 
 - 간단한 도전 과제 ("한 판에 별 3개")
-- 한글 학습 문서 시리즈(`docs/`) — 초급자용 해설 문서

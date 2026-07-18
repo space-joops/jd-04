@@ -43,6 +43,8 @@ export function Leaderboard({ score, eaten, pet }: Props) {
 
   useEffect(() => {
     let alive = true; // 재시작으로 언마운트된 뒤 도착한 응답이 setState 못 하게
+    // useEffect 본문은 async가 될 수 없어서(정리 함수 자리가 꼬인다)
+    // 즉시 실행 async 함수로 감싸는 관용구를 쓴다 (docs/03 §2)
     (async () => {
       // 1) 이번 판 기록 자동 제출 — 0점은 보낼 것이 없다.
       //    제출을 기다렸다가 조회해야 방금 판이 순위표에 반영돼 보인다.

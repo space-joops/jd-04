@@ -606,6 +606,8 @@ function GameCore({ pet }: { pet: StoredPet }) {
         if (j.y > h + 70) {
           if (
             phase === "playing" &&
+            // as 캐스팅: readonly 튜플의 includes는 타입이 좁아서,
+            // "넓은 문자열 배열로 봐 달라"고 잠깐 부탁한다 (docs/02 §8)
             (JUNK_FOOD_KINDS as readonly string[]).includes(j.kind) &&
             combo > 0
           ) {
@@ -889,6 +891,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     const onContextMenu = (e: Event) => e.preventDefault();
 
     const onResize = () => {
+      // 이미 선언된 변수에 구조 분해로 다시 채울 땐 괄호가 필요하다 (docs/02 §10)
       ({ w, h } = fitCanvas(canvas));
     };
 
