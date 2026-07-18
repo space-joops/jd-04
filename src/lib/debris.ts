@@ -38,12 +38,14 @@ export function isFood(j: Junk): boolean {
 
 /**
  * 이번에 스폰할 종류를 고른다 (§9).
- * 가시 확률은 10%에서 시작해 난이도에 비례해 최대 23%까지 오르고,
- * 나머지 확률은 먹이 4종이 균등하게 나눠 갖는다.
+ * 1) 별 보너스 7% 고정 (난이도 무관 — 언제나 같은 희망)
+ * 2) 가시: 10%에서 시작해 난이도에 비례해 최대 23%
+ * 3) 나머지: 먹이 5종(연료 포함) 균등
  *
  * @param allowHazard 타이틀 데모에서는 false — 구경 중 찔리는 연출 방지 (§4)
  */
 export function pickKind(difficulty: number, allowHazard: boolean): JunkKind {
+  if (Math.random() < 0.07) return "star";
   const hazardChance = allowHazard ? 0.1 + 0.13 * difficulty : 0;
   if (Math.random() < hazardChance) return "hazard";
   return FOOD_KINDS[Math.floor(Math.random() * FOOD_KINDS.length)];
@@ -221,6 +223,30 @@ export function drawJunk(
       ctx.fillRect(-2, -2, 1, 1); // 왼눈
       ctx.fillRect(1, -2, 1, 1); // 오른눈
       ctx.fillRect(-1.5, 0, 3, 1.5); // 크게 벌린 입
+      break;
+    }
+    case "star": {
+      // 별 보너스 (§5). 맥박 뛰듯 커졌다 작아진다 — "특별한 아이"라는 신호.
+      // swayT를 심장 박동 시계로 재활용 (별도 타이머를 늘리지 않기 위해).
+      const pulse = 1 + 0.12 * Math.sin(j.swayT * 5);
+      ctx.scale(pulse, pulse);
+      // 5각 별 — 가로줄을 계단식으로 쌓아 만든 도트 별.
+      // ⚠️ 가시(십자 실루엣)와 절대 닮으면 안 된다 — 하나는 잡고 하나는 피한다.
+      ctx.fillStyle = JUNK_COLORS.star;
+      ctx.fillRect(-0.5, -4, 1, 1); // 꼭대기 꼭짓점
+      ctx.fillRect(-1, -3, 2, 1);
+      ctx.fillRect(-4, -2, 8, 1); // 좌우 꼭짓점 (가장 넓은 줄)
+      ctx.fillRect(-3, -1, 6, 1);
+      ctx.fillRect(-2, 0, 4, 1);
+      ctx.fillRect(-2.5, 1, 2, 1); // 왼 다리 (여기서 둘로 갈라진다)
+      ctx.fillRect(0.5, 1, 2, 1); // 오른 다리
+      ctx.fillRect(-3.5, 2, 2, 1); // 왼 다리 끝
+      ctx.fillRect(1.5, 2, 2, 1); // 오른 다리 끝
+      // 반짝반짝 신난 얼굴 (§5)
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-1.5, -1.5, 1, 1); // 왼눈
+      ctx.fillRect(0.5, -1.5, 1, 1); // 오른눈
+      ctx.fillRect(-1, -0.25, 2, 0.75); // 방긋 입
       break;
     }
   }

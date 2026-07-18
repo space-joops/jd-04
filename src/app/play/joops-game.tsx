@@ -32,6 +32,7 @@ import {
   playEat,
   playGameOver,
   playHit,
+  playStar,
 } from "@/lib/sound";
 import { GameUi, type GameUiState } from "./game-ui";
 
@@ -196,6 +197,18 @@ export default function JoopsGame() {
       if (j.kind === "fuel") {
         fuel = Math.min(TUNE.maxFuel, fuel + 800);
         popups.push(makePopup("FUEL UP!", j.x, j.y, COLORS.mascot));
+        playEat();
+      } else if (j.kind === "star") {
+        // 별 보너스 (§5): 하트가 닳아 있으면 점수 대신 하트 +1 —
+        // 위기의 플레이어에게는 40점보다 하트 하나가 훨씬 절실하다.
+        if (hearts < TUNE.hearts) {
+          hearts += 1;
+          popups.push(makePopup("+♥", j.x, j.y, COLORS.heart));
+        } else {
+          score += 40;
+          popups.push(makePopup("+40!", j.x, j.y, COLORS.accent));
+        }
+        playStar();
       } else {
         score += 10;
         eaten += 1;
@@ -203,8 +216,8 @@ export default function JoopsGame() {
         popups.push(
           makePopup(EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)], j.x, j.y),
         );
+        playEat();
       }
-      playEat();
       pushUi();
     };
 

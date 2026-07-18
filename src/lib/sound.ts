@@ -86,3 +86,13 @@ export function playGameOver(): void {
   chirp("triangle", 330, 330, 0.16, 0.07, 0.16);
   chirp("triangle", 262, 262, 0.28, 0.07, 0.32);
 }
+
+/**
+ * 별 보너스: 660→880→1320Hz 상승 아르페지오 (§5) — 보통 먹이(둘 다 상승
+ * 트라이앵글)와 같은 문법이되 세 음으로 "더 좋은 일"임을 알린다.
+ */
+export function playStar(): void {
+  chirp("triangle", 660, 660, 0.09, 0.07, 0);
+  chirp("triangle", 880, 880, 0.09, 0.07, 0.08);
+  chirp("triangle", 1320, 1320, 0.16, 0.07, 0.16);
+}
