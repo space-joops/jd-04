@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SwRegister } from "./sw-register";
 
 // 전역 메타데이터 — 페이지별로 덮어쓸 수 있지만 기본값은 여기서.
 export const metadata: Metadata = {
@@ -32,7 +33,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* 서비스 워커 등록 + 새 버전 토스트 — 모든 페이지에서 (§13) */}
+        <SwRegister />
+      </body>
     </html>
   );
 }

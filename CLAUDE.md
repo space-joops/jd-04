@@ -266,6 +266,19 @@
   추가" 안내, iOS 인앱 브라우저(카카오톡 등)는 **"사파리로 열기"**(x-safari-
   스킴, iOS 17+) + 링크 복사 폴백, 그 외는 브라우저 메뉴 안내.
   이미 standalone 실행 중이면 통째로 숨김.
+- **오프라인 구동 & 배포 갱신** (`public/sw.js` + `sw-register.tsx`):
+  - 캐시 전략은 요청 종류별로 다르다 — 페이지 이동은 **네트워크 우선**(새 배포가
+    캐시에 막히면 안 된다, 오프라인일 때만 셸 폴백), `/_next/static/`·아이콘은
+    **캐시 우선**(해시 파일명 = 불변), 그 외 동일 출처 GET은 stale-while-revalidate.
+    교차 출처(폰트 CDN·Supabase)와 GET 아닌 요청은 손대지 않는다.
+  - 게임 상태는 localStorage(§8)라 오프라인에서도 플레이·저장이 전부 동작.
+  - **등록은 프로덕션 빌드에서만** — 개발 중엔 핫리로드가 캐시에 오염된다.
+  - **갱신 트리거 = package.json 버전 올리기**: 등록 URL이 `/sw.js?v={버전}`이라
+    버전을 올려 배포하면 새 워커가 설치되고, **"새 버전 도착" 토스트** →
+    사용자가 누르면 SKIP_WAITING → 교대 → 리로드. 리로드는 사용자가 눌렀을
+    때만 한다 — 게임 도중 멋대로 새로고침하면 안 된다.
+  - `sw.js`의 `VERSION` 상수는 캐시 저장소 이름 — 캐시 구조를 바꾸거나
+    대청소가 필요할 때만 올린다 (activate에서 옛 캐시 전부 삭제).
 - **버전 표기**: `package.json`의 version을 빌드 타임에 읽어 랜딩 푸터에 `v{버전}` 상시 표시.
 - 접근성: 장식 요소에 `aria-hidden`, 포커스 링(focus-visible) 유지, HTML 텍스트로 정보 전달.
 - 이 저장소는 **프론트엔드 초급자 학습용**이다: 모든 코드에 "왜"를 설명하는 꼼꼼한 한글 주석.
@@ -286,7 +299,8 @@ src/
 │   ├── icon-192.png/      └ 매니페스트 아이콘 라우트 (192px)
 │   ├── icon-512.png/      └ 매니페스트 아이콘 라우트 (512px + 마스커블 겸용)
 │   ├── apple-icon.tsx     iOS 홈 화면 아이콘 (자동 링크)
-│   ├── layout.tsx         루트 레이아웃 (전역 메타, themeColor, appleWebApp)
+│   ├── sw-register.tsx    서비스 워커 등록 + "새 버전 도착" 갱신 토스트 (§13)
+│   ├── layout.tsx         루트 레이아웃 (전역 메타, themeColor, appleWebApp, SwRegister)
 │   ├── globals.css        Tailwind + 전역 스타일 (픽셀 폰트 2종, 우주색 배경, 선택 방지)
 │   └── play/
 │       ├── page.tsx       "/play" 껍데기 (메타데이터·뷰포트)
@@ -305,6 +319,7 @@ src/
     ├── storage.ts         localStorage (최고 기록 sjs-best · 이니셜 sjs-name · 인트로 sjs-intro)
     └── leaderboard.ts     온라인 리더보드 Supabase REST 클라이언트 (§8-1)
 
+public/sw.js             서비스 워커 — 앱 셸 캐싱·오프라인·배포 갱신 (§13)
 supabase/schema.sql      scores 테이블 + RLS 정책 (Supabase SQL Editor에서 실행)
 .env.example             Supabase 연결 정보 예시 (.env.local로 복사해 사용)
 ```
