@@ -43,11 +43,14 @@ export default function Home() {
           <p className="font-pixel-ko text-2xl text-white">우주 냠냠!</p>
         </header>
 
-        {/* ---- 세계관 스토리 (STELLAPET 세계관 공유, §2) ---- */}
+        {/* ---- 세계관 스토리 (STELLAPET 세계관 공유, §2) ----
+             스타워즈 오프닝 크롤: 우주 저편으로 흘러가는 자막 (globals.css).
+             텍스트는 DOM에 그대로 있으므로 스크린리더는 평범하게 읽는다. */}
         <section
           aria-label="게임 스토리"
-          className="font-pixel-ko flex flex-col gap-6 text-base leading-relaxed text-gray-200 md:text-lg"
+          className="starwars-stage h-64 w-full md:h-80"
         >
+          <div className="starwars-crawl font-pixel-ko flex flex-col gap-10 text-base leading-relaxed text-gray-200 md:text-lg">
           <p>
             2031년, 걱정으로만 떠돌던 케슬러 신드롬이 진짜가 됐다.
             <br />
@@ -70,6 +73,7 @@ export default function Home() {
             <br />
             <span className="text-xl text-white">&ldquo;우주 냠냠!&rdquo;</span>
           </p>
+          </div>
         </section>
 
         {/* ---- 규칙 — 튜토리얼 없이 3초 안에 이해될 만큼만 (§1) ---- */}

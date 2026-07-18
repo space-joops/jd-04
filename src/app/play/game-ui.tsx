@@ -36,26 +36,28 @@ export function GameUi({
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
-      {/* ---- HUD: 왼쪽 점수, 가운데 HOME, 오른쪽 하트 ---- */}
+      {/* ---- HUD: 왼쪽 점수, 오른쪽 HOME + 하트 ---- */}
       <div className="flex items-start justify-between px-5 pt-3 text-3xl tracking-widest">
         <div>{score}</div>
-        {/* 초기 화면(랜딩)으로 복귀. 이 링크만 pointer-events-auto —
-            HUD 침범 금지선(y < r+64, §6-1) 안이라 조이스틱 조작과 안 겹친다.
-            페이지를 떠나면 useEffect 정리 함수가 rAF·오디오를 해제한다 (§12). */}
-        <Link
-          href="/"
-          aria-label="처음 화면으로 돌아가기"
-          className="pointer-events-auto mt-1 border-2 border-white/30 px-2 py-1 text-xs text-white/60 transition-colors hover:border-white/60 hover:text-white focus-visible:border-white"
-        >
-          HOME
-        </Link>
-        <div>
-          {/* 장식용 하트 문자는 aria-hidden, 실제 정보는 sr-only 텍스트로 */}
-          <span aria-hidden style={{ color: COLORS.heart }}>
-            {"♥".repeat(hearts)}
-            <span className="opacity-40">{"♡".repeat(Math.max(0, 3 - hearts))}</span>
-          </span>
-          <span className="sr-only">Hearts: {hearts}</span>
+        <div className="flex items-start gap-3">
+          {/* 초기 화면(랜딩)으로 복귀 — 하트 옆. 이 링크만 pointer-events-auto이고
+              HUD 침범 금지선(y < r+64, §6-1) 안이라 조이스틱 조작과 안 겹친다.
+              페이지를 떠나면 useEffect 정리 함수가 rAF·오디오를 해제한다 (§12). */}
+          <Link
+            href="/"
+            aria-label="처음 화면으로 돌아가기"
+            className="pointer-events-auto mt-1 border-2 border-white/30 px-2 py-1 text-xs text-white/60 transition-colors hover:border-white/60 hover:text-white focus-visible:border-white"
+          >
+            HOME
+          </Link>
+          <div>
+            {/* 장식용 하트 문자는 aria-hidden, 실제 정보는 sr-only 텍스트로 */}
+            <span aria-hidden style={{ color: COLORS.heart }}>
+              {"♥".repeat(hearts)}
+              <span className="opacity-40">{"♡".repeat(Math.max(0, 3 - hearts))}</span>
+            </span>
+            <span className="sr-only">Hearts: {hearts}</span>
+          </div>
         </div>
       </div>
 
