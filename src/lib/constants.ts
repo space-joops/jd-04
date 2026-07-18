@@ -21,19 +21,39 @@ export const COLORS = {
  * 이 타입과 아래 표만 늘리면 된다.
  */
 export type JunkKind =
+  // 쓰레기 8종 — 점수·콤보·수거량(eaten)의 대상 (§5)
   | "satellite"
   | "bolt"
   | "can"
   | "spring"
+  | "glove" // 1965년 제미니 4호, 에드 화이트가 흘린 장갑 (실화!)
+  | "toolbag" // 2008년 STS-126, 우주유영 중 놓친 공구가방 (실화!)
+  | "fairing" // 로켓 페어링 조각
+  | "cubesat" // 찌그러진 큐브샛
+  // 위험물
   | "hazard"
+  // 아이템
   | "fuel"
-  | "star";
+  | "star"
+  // 파워업 3종 (§5-2) — 한시적 버프
+  | "magnet" // 자석 강화
+  | "slowmo" // 시간 느려짐
+  | "shield"; // 방패 (콤보 지킴이)
 
-/**
- * 먹이 5종 (연료 포함) — 스폰 확률 계산에서 "가시·별이 아닌 나머지 균등"에
- * 쓰인다 (§9). 별(star)은 이 배열에 없다 — 7% 고정의 별도 추첨이라서.
- */
-export const FOOD_KINDS = ["satellite", "bolt", "can", "spring", "fuel"] as const;
+/** 쓰레기 8종 — 점수·콤보·수거량의 대상. 스폰의 "나머지 균등" 몫 (§9). */
+export const JUNK_FOOD_KINDS = [
+  "satellite",
+  "bolt",
+  "can",
+  "spring",
+  "glove",
+  "toolbag",
+  "fairing",
+  "cubesat",
+] as const;
+
+/** 파워업 3종 — 4% 고정 추첨을 셋이 균등하게 나눈다 (§9). */
+export const POWERUP_KINDS = ["magnet", "slowmo", "shield"] as const;
 
 /** 종류별 대표색 (§5 표의 원본). */
 export const JUNK_COLORS: Record<JunkKind, string> = {
@@ -41,9 +61,16 @@ export const JUNK_COLORS: Record<JunkKind, string> = {
   bolt: "#cfd8e6", // 은색
   can: "#f9a8d4", // 분홍
   spring: "#c4b5fd", // 보라
+  glove: "#f1f3f5", // 흰 우주복 장갑
+  toolbag: "#e8b26f", // 갈색 공구가방
+  fairing: "#adb5bd", // 회색 페어링
+  cubesat: "#74c0fc", // 파란 큐브샛
   hazard: "#ff8080", // 빨강 (COLORS.danger와 같은 값)
   fuel: "#66fcf1", // 연료 아이템 네온 민트
   star: "#ffd166", // 별 보너스 (COLORS.accent와 같은 값)
+  magnet: "#ffa94d", // 자석 주황
+  slowmo: "#b197fc", // 슬로모 라벤더
+  shield: "#7ee8b2", // 방패 민트 (마스코트를 지키는 색)
 };
 
 // ----------------------------------------------------------------------------

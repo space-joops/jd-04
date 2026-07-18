@@ -7,7 +7,13 @@
 // - drawJunk: 그리기 (읽기만 하고 상태는 안 바꿈)
 // ============================================================================
 
-import { COLORS, FOOD_KINDS, JUNK_COLORS, type JunkKind } from "./constants";
+import {
+  COLORS,
+  JUNK_COLORS,
+  JUNK_FOOD_KINDS,
+  POWERUP_KINDS,
+  type JunkKind,
+} from "./constants";
 
 /** 낙하물 하나. */
 export type Junk = {
@@ -37,18 +43,24 @@ export function isFood(j: Junk): boolean {
 }
 
 /**
- * 이번에 스폰할 종류를 고른다 (§9).
+ * 이번에 스폰할 종류를 고른다 (§9). 추첨 순서:
  * 1) 별 보너스 7% 고정 (난이도 무관 — 언제나 같은 희망)
- * 2) 가시: 10%에서 시작해 난이도에 비례해 최대 23%
- * 3) 나머지: 먹이 5종(연료 포함) 균등
+ * 2) 파워업 4% 고정 — 자석·슬로모·방패가 균등하게 나눔 (§5-2)
+ * 3) 연료 6% 고정 — 쓰레기 종류가 늘어도 연료 경제가 흔들리지 않게 별도 추첨
+ * 4) 가시: 10%에서 시작해 난이도에 비례해 최대 23%
+ * 5) 나머지: 쓰레기 8종 균등
  *
  * @param allowHazard 타이틀 데모에서는 false — 구경 중 찔리는 연출 방지 (§4)
  */
 export function pickKind(difficulty: number, allowHazard: boolean): JunkKind {
   if (Math.random() < 0.07) return "star";
+  if (Math.random() < 0.04) {
+    return POWERUP_KINDS[Math.floor(Math.random() * POWERUP_KINDS.length)];
+  }
+  if (Math.random() < 0.06) return "fuel";
   const hazardChance = allowHazard ? 0.1 + 0.13 * difficulty : 0;
   if (Math.random() < hazardChance) return "hazard";
-  return FOOD_KINDS[Math.floor(Math.random() * FOOD_KINDS.length)];
+  return JUNK_FOOD_KINDS[Math.floor(Math.random() * JUNK_FOOD_KINDS.length)];
 }
 
 /**
@@ -223,6 +235,107 @@ export function drawJunk(
       ctx.fillRect(-2, -2, 1, 1); // 왼눈
       ctx.fillRect(1, -2, 1, 1); // 오른눈
       ctx.fillRect(-1.5, 0, 3, 1.5); // 크게 벌린 입
+      break;
+    }
+    case "glove": {
+      // 에드 화이트의 장갑 (1965 제미니 4호 실화!) — 살랑살랑 인사하는 미튼
+      ctx.fillStyle = JUNK_COLORS.glove;
+      ctx.fillRect(-2, -3, 4, 5); // 손바닥 + 손가락
+      ctx.fillRect(2, -1, 1.5, 1.5); // 엄지
+      ctx.fillRect(-1.5, 2, 3, 2); // 소맷단
+      // 순한 얼굴 — 60년째 혼자 떠돌지만 씩씩하다
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-1.5, -2, 1, 1); // 왼눈
+      ctx.fillRect(0.5, -2, 1, 1); // 오른눈
+      ctx.fillRect(-0.5, 0, 1, 0.75); // 오물 입
+      break;
+    }
+    case "toolbag": {
+      // STS-126 공구가방 (2008 실화!) — 손잡이 달린 네모 가방
+      ctx.fillStyle = JUNK_COLORS.toolbag;
+      ctx.fillRect(-1.5, -4, 3, 1); // 손잡이 윗변
+      ctx.fillRect(-1.5, -3, 1, 1); // 손잡이 왼 기둥
+      ctx.fillRect(0.5, -3, 1, 1); // 손잡이 오른 기둥
+      ctx.fillRect(-3, -2, 6, 5); // 가방 몸통
+      // 덮개 선 + 어리둥절한 얼굴 (주인 잃은 지 오래)
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-3, -0.75, 6, 0.5); // 덮개 선
+      ctx.fillRect(-2, 0.5, 1, 1); // 왼눈
+      ctx.fillRect(1, 0.5, 1, 1); // 오른눈
+      ctx.fillRect(-0.5, 2, 1, 0.75); // 작은 입
+      break;
+    }
+    case "fairing": {
+      // 로켓 페어링 조각 — 위로 갈수록 좁아지는 반쪽 원뿔
+      ctx.fillStyle = JUNK_COLORS.fairing;
+      ctx.fillRect(-1, -4, 2, 1); // 코끝
+      ctx.fillRect(-2, -3, 4, 2);
+      ctx.fillRect(-3, -1, 6, 2);
+      ctx.fillRect(-3.5, 1, 7, 2); // 바닥 넓은 단
+      // 담담한 얼굴 — 임무를 마치고 떨어져 나온 베테랑
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-1.5, -0.5, 1, 1); // 왼눈
+      ctx.fillRect(0.5, -0.5, 1, 1); // 오른눈
+      ctx.fillRect(-1, 1.75, 2, 0.5); // 일자 입
+      break;
+    }
+    case "cubesat": {
+      // 찌그러진 큐브샛 — 네모 몸통 + 네 귀퉁이 안테나
+      ctx.fillStyle = JUNK_COLORS.cubesat;
+      ctx.fillRect(-3.5, -3.5, 1, 1); // 안테나 좌상
+      ctx.fillRect(2.5, -3.5, 1, 1); // 안테나 우상
+      ctx.fillRect(-3.5, 2.5, 1, 1); // 안테나 좌하
+      ctx.fillRect(2.5, 2.5, 1, 1); // 안테나 우하
+      ctx.fillRect(-2.5, -2.5, 5, 5); // 몸통
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(1.5, -2.5, 1, 1); // 찌그러진 귀퉁이 (배경색으로 파임)
+      // 어질어질 X자 눈 — 찌그러졌으니까 (캔과 같은 트릭)
+      drawXEye(ctx, -1, -0.5);
+      drawXEye(ctx, 1, -0.5);
+      ctx.fillRect(-1, 1.25, 2, 0.5); // 뻗은 입
+      break;
+    }
+    case "magnet": {
+      // 자석 강화 파워업 (§5-2) — U자석
+      ctx.fillStyle = JUNK_COLORS.magnet;
+      ctx.fillRect(-3, -3, 6, 2); // 상단 아치
+      ctx.fillRect(-3, -1, 2, 4); // 왼다리
+      ctx.fillRect(1, -1, 2, 4); // 오른다리
+      ctx.fillStyle = COLORS.ink;
+      ctx.fillRect(-3, 2, 2, 1); // 왼쪽 흰 극
+      ctx.fillRect(1, 2, 2, 1); // 오른쪽 흰 극
+      // 눈은 아치에, 웃음은 그 아래 — 끌어당기는 게 신난다
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-2, -2.5, 1, 1); // 왼눈
+      ctx.fillRect(1, -2.5, 1, 1); // 오른눈
+      ctx.fillRect(-0.5, -1.75, 1, 0.5); // 방긋
+      break;
+    }
+    case "slowmo": {
+      // 시간 느려짐 파워업 (§5-2) — 동그란 시계
+      ctx.fillStyle = JUNK_COLORS.slowmo;
+      ctx.fillRect(-2, -3, 4, 1); // 위 둘레
+      ctx.fillRect(-3, -2, 6, 4); // 몸통
+      ctx.fillRect(-2, 2, 4, 1); // 아래 둘레
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-2, -1.5, 1, 1); // 왼눈
+      ctx.fillRect(1, -1.5, 1, 1); // 오른눈
+      ctx.fillRect(-0.5, -1.5, 1, 1.5); // 분침 (위)
+      ctx.fillRect(-0.5, -0.5, 1.5, 1); // 시침 (오른쪽) — 느긋한 시간
+      ctx.fillRect(-1, 1.25, 2, 0.5); // 잔잔한 미소
+      break;
+    }
+    case "shield": {
+      // 방패 파워업 (§5-2) — 위가 넓고 아래가 뾰족한 방패
+      ctx.fillStyle = JUNK_COLORS.shield;
+      ctx.fillRect(-3, -3, 6, 3); // 상단 판
+      ctx.fillRect(-2, 0, 4, 2);
+      ctx.fillRect(-1, 2, 2, 1); // 뾰족한 끝
+      // 굳센 얼굴 — 다문 일자 입
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-2, -2, 1, 1); // 왼눈
+      ctx.fillRect(1, -2, 1, 1); // 오른눈
+      ctx.fillRect(-1, -0.5, 2, 0.5); // 다문 입
       break;
     }
     case "star": {

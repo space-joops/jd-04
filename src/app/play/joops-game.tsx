@@ -13,7 +13,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fitCanvas } from "@/lib/canvas";
-import { EAT_WORDS, HIT_WORDS, COLORS, JUNK_COLORS } from "@/lib/constants";
+import {
+  COLORS,
+  EAT_WORDS,
+  HIT_WORDS,
+  JUNK_COLORS,
+  JUNK_FOOD_KINDS,
+} from "@/lib/constants";
 import { drawBackdrop } from "@/lib/backdrop";
 import { drawMascot } from "@/lib/mascot";
 import {
@@ -46,10 +52,12 @@ import { PetNameGate } from "./pet-name";
 import {
   disposeAudio,
   ensureAudio,
+  playBlock,
   playCombo,
   playEat,
   playGameOver,
   playHit,
+  playPowerup,
   playStar,
 } from "@/lib/sound";
 import { GameUi, type GameUiState } from "./game-ui";
@@ -85,6 +93,12 @@ const TUNE = {
   // --- 콤보 배율 (§5-1) ---
   comboStep: 5, // 쓰레기 연속 몇 개마다 배율이 오르는가 (5, 10, 15…)
   comboMaxMult: 5, // 배율 상한 ×5 — 무한히 커지면 한 번의 실수가 너무 아프다
+
+  // --- 파워업 (§5-2) ---
+  powerupTime: 8, // 자석·슬로모 지속 시간(초)
+  magnetBoost: 3, // 자석 강화 중 범위·당기는 힘 배율
+  slowFactor: 0.45, // 슬로모 중 낙하물 시간 배율 — 주인공은 평소 속도라 강해진 기분
+  shieldGrace: 0.8, // 방패로 막은 직후의 짧은 무적 — 같은 가시에 연타당하지 않게
 
   shakeTime: 0.35, // 피격 화면 흔들림 지속 (§10)
   shakeAmp: 7, // 흔들림 최대 진폭(px)
@@ -171,6 +185,11 @@ function GameCore({ pet }: { pet: StoredPet }) {
     const comboMult = () =>
       Math.min(TUNE.comboMaxMult, 1 + Math.floor(combo / TUNE.comboStep));
 
+    // --- 파워업 상태 (§5-2) ---
+    let magnetT = 0; // 자석 강화 남은 시간
+    let slowT = 0; // 시간 느려짐 남은 시간
+    let shield = false; // 방패 보유 (시간제가 아니라 1회 방어)
+
     // --- 조이스틱 상태 ---
     // 원점(Ox,Oy)은 "누른 지점", 손잡이(Cx,Cy)는 "지금 손가락 위치".
     // 둘의 차이 벡터가 추진 방향·세기가 된다 (§6-1).
@@ -229,6 +248,9 @@ function GameCore({ pet }: { pet: StoredPet }) {
       hearts = TUNE.hearts;
       newBest = false;
       combo = 0;
+      magnetT = 0;
+      slowT = 0;
+      shield = false;
       mascot.r = TUNE.startR;
       vx = 0;
       vy = 0;
@@ -274,6 +296,21 @@ function GameCore({ pet }: { pet: StoredPet }) {
           popups.push(makePopup(`+${gain}!`, j.x, j.y, COLORS.accent));
         }
         playStar();
+      } else if (j.kind === "magnet") {
+        // 자석 강화 (§5-2): 한동안 먹이가 훨씬 멀리서도 끌려온다
+        magnetT = TUNE.powerupTime;
+        popups.push(makePopup("MAGNET!", j.x, j.y, JUNK_COLORS.magnet));
+        playPowerup();
+      } else if (j.kind === "slowmo") {
+        // 시간 느려짐 (§5-2): 낙하물만 느려진다 — 주인공은 평소 속도
+        slowT = TUNE.powerupTime;
+        popups.push(makePopup("SLOW-MO!", j.x, j.y, JUNK_COLORS.slowmo));
+        playPowerup();
+      } else if (j.kind === "shield") {
+        // 방패 (§5-2): 다음 가시 한 방을 대신 맞아 준다 — 콤보 지킴이
+        shield = true;
+        popups.push(makePopup("SHIELD!", j.x, j.y, JUNK_COLORS.shield));
+        playPowerup();
       } else {
         // 콤보 (§5-1): 쓰레기 연속 획득마다 +1, 5개마다 배율이 오른다
         const prevMult = comboMult();
@@ -335,6 +372,8 @@ function GameCore({ pet }: { pet: StoredPet }) {
       elapsed += dt;
       if (invincible > 0) invincible -= dt;
       if (shake > 0) shake -= dt;
+      if (magnetT > 0) magnetT -= dt;
+      if (slowT > 0) slowT -= dt;
 
       // --- 스폰 (over에서는 새로 안 뿌리고, 남은 것만 마저 떨어진다) ---
       if (phase !== "over") {
@@ -462,16 +501,19 @@ function GameCore({ pet }: { pet: StoredPet }) {
           continue;
         }
 
-        stepJunk(j, dt);
+        // 슬로모 (§5-2): 낙하물의 시간만 느리게 흐른다
+        stepJunk(j, slowT > 0 ? dt * TUNE.slowFactor : dt);
 
         // 자석 (§7): 먹이가 가까우면 슬쩍 끌려온다.
+        // 자석 강화(§5-2) 중에는 범위·힘이 배로 — 이때만은 티가 나도 좋다.
         // 반드시 흔들림 중심축 x0를 옮긴다 — x는 매 프레임 재계산되는 파생값.
         if (phase === "playing" && isFood(j)) {
+          const boost = magnetT > 0 ? TUNE.magnetBoost : 1;
           const dx = mascot.x - j.x;
           const dy = mascot.y - j.y;
           const dist = Math.hypot(dx, dy);
-          if (dist > 1 && dist < mascot.r + TUNE.magnetRange) {
-            const pull = (TUNE.magnetPull * dt) / dist;
+          if (dist > 1 && dist < mascot.r + TUNE.magnetRange * boost) {
+            const pull = (TUNE.magnetPull * boost * dt) / dist;
             j.x0 += dx * pull;
             j.y += dy * pull;
           }
@@ -488,7 +530,19 @@ function GameCore({ pet }: { pet: StoredPet }) {
             if (dist < mascot.r + j.size * TUNE.eatJudge + bonus) eat(j);
           } else if (invincible <= 0 && dist < mascot.r + j.size * TUNE.hitJudge) {
             junks.splice(i, 1); // 찌른 가시는 소멸 — 무적 끝나자마자 또 찌르는 억울함 방지
-            hit();
+            if (shield) {
+              // 방패가 대신 맞는다 (§5-2) — 하트도 콤보도 무사하다
+              shield = false;
+              invincible = TUNE.shieldGrace;
+              popups.push(
+                makePopup("BLOCKED!", mascot.x, mascot.y - mascot.r - 14, JUNK_COLORS.shield),
+              );
+              sparks.push(...makeSparks(mascot.x, mascot.y, JUNK_COLORS.shield, 7));
+              playBlock();
+              vibrate(30); // 피격(90ms)보다 짧게 — "막았다"는 다른 감각
+            } else {
+              hit();
+            }
             continue;
           }
         }
@@ -496,13 +550,11 @@ function GameCore({ pet }: { pet: StoredPet }) {
         // 화면 밖 제거 — 배열이 무한히 쌓이면 성능이 샌다 (§13).
         // 놓친 먹이에 하트·점수 페널티는 없지만(캐주얼 지향, §5),
         // 쓰레기를 놓치면 콤보는 끊긴다 (§5-1 — "안 놓치고 먹으면"의 정의).
-        // 별·연료는 보너스라 놓쳐도 콤보를 건드리지 않는다.
+        // 별·연료·파워업은 보너스라 놓쳐도 콤보를 건드리지 않는다.
         if (j.y > h + 70) {
           if (
             phase === "playing" &&
-            isFood(j) &&
-            j.kind !== "star" &&
-            j.kind !== "fuel" &&
+            (JUNK_FOOD_KINDS as readonly string[]).includes(j.kind) &&
             combo > 0
           ) {
             combo = 0;
@@ -544,6 +596,34 @@ function GameCore({ pet }: { pet: StoredPet }) {
       }
 
       drawBackdrop(ctx, w, h, elapsed); // t: 별 반짝임·달 잠꼬대의 시계 (§11)
+
+      // 슬로모 (§5-2): 화면 전체에 라벤더 기운 — 끝나기 1초 전부터 옅어진다
+      if (slowT > 0) {
+        ctx.save();
+        ctx.globalAlpha *= 0.07 * Math.min(1, slowT);
+        ctx.fillStyle = JUNK_COLORS.slowmo;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+      }
+
+      // 자석 강화 (§5-2): 커진 흡입 범위를 링으로 — 평소 자석은 몰래(§7),
+      // 파워업만은 티를 내야 "지금 강하다"가 전달된다
+      if (magnetT > 0 && phase === "playing") {
+        ctx.save();
+        ctx.globalAlpha *= 0.14 * Math.min(1, magnetT);
+        ctx.strokeStyle = JUNK_COLORS.magnet;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(
+          mascot.x,
+          mascot.y,
+          mascot.r + TUNE.magnetRange * TUNE.magnetBoost,
+          0,
+          Math.PI * 2,
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
 
       for (const j of junks) {
         // "꿀꺽" 진행도만큼 축소 — 입으로 사라지는 연출
@@ -593,6 +673,19 @@ function GameCore({ pet }: { pet: StoredPet }) {
         mouthOpen,
       });
 
+      // 방패 (§5-2): 몸 주위를 도는 민트 도트 6개 — "한 방은 막아준다"
+      if (shield) {
+        ctx.save();
+        ctx.fillStyle = JUNK_COLORS.shield;
+        for (let k = 0; k < 6; k++) {
+          const a = elapsed * 2.2 + (k * Math.PI) / 3;
+          const px = mascot.x + Math.cos(a) * (mascot.r + 10);
+          const py = mascot.y + Math.sin(a) * (mascot.r + 10);
+          ctx.fillRect(Math.floor(px) - 2, Math.floor(py) - 2, 4, 4);
+        }
+        ctx.restore();
+      }
+
       // 스파크는 마스코트 위, 팝업 글자 아래 — 글자 가독이 항상 우선 (§10)
       for (const s of sparks) drawSpark(ctx, s);
       for (const p of popups) drawPopup(ctx, p);
@@ -638,6 +731,18 @@ function GameCore({ pet }: { pet: StoredPet }) {
         ctx.strokeStyle = "rgba(255,255,255,0.8)";
         ctx.lineWidth = 2;
         ctx.strokeRect(barX, barY, barW, barH);
+
+        // 파워업 남은 시간 미니바 (§5-2) — 연료 게이지 바로 아래, 버프 색 그대로
+        let buffY = barY + barH + 4;
+        for (const buff of [
+          { t: magnetT, color: JUNK_COLORS.magnet },
+          { t: slowT, color: JUNK_COLORS.slowmo },
+        ]) {
+          if (buff.t <= 0) continue;
+          ctx.fillStyle = buff.color;
+          ctx.fillRect(barX, buffY, barW * (buff.t / TUNE.powerupTime), 3);
+          buffY += 5;
+        }
         ctx.restore();
       }
 

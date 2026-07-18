@@ -105,3 +105,17 @@ export function playCombo(): void {
   chirp("triangle", 523, 523, 0.08, 0.07, 0);
   chirp("triangle", 1046, 1046, 0.14, 0.07, 0.07);
 }
+
+/** 파워업 획득 (§5-2): 낮은 곳에서 높이 미끄러져 올라가는 "충전" 스윕. */
+export function playPowerup(): void {
+  chirp("triangle", 330, 1320, 0.22, 0.08);
+}
+
+/**
+ * 방패로 피격을 막음 (§5-2): 짧게 오르는 2음 — "나쁜 일을 피했다"는
+ * 좋은 일이므로 상승 문법(§10)을 쓰되, 축하보다는 "텅" 하는 안도감으로.
+ */
+export function playBlock(): void {
+  chirp("triangle", 262, 262, 0.06, 0.08, 0);
+  chirp("triangle", 392, 392, 0.12, 0.08, 0.05);
+}
