@@ -149,7 +149,7 @@ export function AttractSky() {
     };
 
     const draw = () => {
-      drawBackdrop(ctx, w, h);
+      drawBackdrop(ctx, w, h, elapsed); // t: 별 반짝임·달 잠꼬대의 시계 (§11)
       for (const j of junks) {
         const scale =
           j.eatT >= 0 ? Math.max(0, 1 - j.eatT / DEMO.eatAnimTime) : 1;

@@ -24,7 +24,17 @@ import {
   pickKind,
   stepJunk,
 } from "@/lib/debris";
-import { type Popup, drawPopup, makePopup, stepPopup } from "@/lib/effects";
+import {
+  type Popup,
+  type Spark,
+  drawPopup,
+  drawSpark,
+  makePopup,
+  makeSparks,
+  stepPopup,
+  stepSpark,
+} from "@/lib/effects";
+import { vibrate } from "@/lib/haptics";
 import { loadBest, saveBest } from "@/lib/storage";
 import {
   disposeAudio,
@@ -136,6 +146,7 @@ export default function JoopsGame() {
     };
     let junks: Junk[] = [];
     const popups: Popup[] = [];
+    const sparks: Spark[] = [];
 
     let elapsed = 0; // 누적 시간(초) — 둥둥 떠다니기·깜빡임의 시계
     let spawnTimer = 0; // 다음 스폰까지 남은 시간
@@ -191,9 +202,11 @@ export default function JoopsGame() {
       pushUi();
     };
 
-    /** 먹이 획득: 점수 + 성장 + "꿀꺽" 시작 + 팝업 + 소리 (§10 다중 피드백). */
+    /** 먹이 획득: 점수 + 성장 + "꿀꺽" + 팝업 + 스파크 + 소리 + 진동 (§10). */
     const eat = (j: Junk) => {
       j.eatT = 0; // 이제부터 update가 입으로 빨아들인다
+      sparks.push(...makeSparks(j.x, j.y, JUNK_COLORS[j.kind], 7)); // 먹이색 7개
+      vibrate(12); // 손끝에도 "냠" (§10) — 미지원 환경은 조용히 생략
       if (j.kind === "fuel") {
         fuel = Math.min(TUNE.maxFuel, fuel + 800);
         popups.push(makePopup("FUEL UP!", j.x, j.y, COLORS.mascot));
@@ -221,12 +234,14 @@ export default function JoopsGame() {
       pushUi();
     };
 
-    /** 가시 피격: 하트 -1 + 무적 + 흔들림 + 축소 + 팝업 + 소리. */
+    /** 가시 피격: 하트 -1 + 무적 + 흔들림 + 축소 + 팝업 + 스파크 + 소리 + 진동. */
     const hit = () => {
       hearts -= 1;
       invincible = TUNE.invincibleTime;
       shake = TUNE.shakeTime;
       mascot.r = Math.max(TUNE.startR, mascot.r - TUNE.shrinkOnHit);
+      sparks.push(...makeSparks(mascot.x, mascot.y, COLORS.danger, 10)); // 빨강 10개
+      vibrate(90); // 아픈 일은 길게 — 먹기(12ms)와 확실히 구분 (§10)
       popups.push(
         makePopup(
           HIT_WORDS[Math.floor(Math.random() * HIT_WORDS.length)],
@@ -425,6 +440,13 @@ export default function JoopsGame() {
         stepPopup(p, dt);
         if (p.age >= p.life) popups.splice(i, 1);
       }
+
+      // --- 스파크 입자 ---
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        stepSpark(s, dt);
+        if (s.age >= s.life) sparks.splice(i, 1);
+      }
     };
 
     // ------------------------------------------------------------------
@@ -443,7 +465,7 @@ export default function JoopsGame() {
         );
       }
 
-      drawBackdrop(ctx, w, h);
+      drawBackdrop(ctx, w, h, elapsed); // t: 별 반짝임·달 잠꼬대의 시계 (§11)
 
       for (const j of junks) {
         // "꿀꺽" 진행도만큼 축소 — 입으로 사라지는 연출
@@ -493,6 +515,8 @@ export default function JoopsGame() {
         mouthOpen,
       });
 
+      // 스파크는 마스코트 위, 팝업 글자 아래 — 글자 가독이 항상 우선 (§10)
+      for (const s of sparks) drawSpark(ctx, s);
       for (const p of popups) drawPopup(ctx, p);
 
       // --- 버추얼 조이스틱 — 원점(큰 원)과 손잡이(작은 원) ---
