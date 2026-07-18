@@ -22,7 +22,10 @@ export const COLORS = {
  */
 export type JunkKind = "satellite" | "bolt" | "can" | "spring" | "hazard" | "fuel";
 
-/** 먹이 4종 — 스폰 확률 계산에서 "가시가 아닌 나머지 균등"에 쓰인다 (§9). */
+/**
+ * 먹이 5종 (연료 포함) — 스폰 확률 계산에서 "가시가 아닌 나머지 균등"에
+ * 쓰인다 (§9). 연료도 이 배열에 있어서 먹이와 같은 확률로 떨어진다.
+ */
 export const FOOD_KINDS = ["satellite", "bolt", "can", "spring", "fuel"] as const;
 
 /** 종류별 대표색 (§5 표의 원본). */
@@ -36,18 +39,21 @@ export const JUNK_COLORS: Record<JunkKind, string> = {
 };
 
 // ----------------------------------------------------------------------------
-// 대사 — 전부 한글 구어체 (§2 톤 앤 매너). 죽음/폭발 같은 어휘는 쓰지 않는다.
+// 대사 — 레트로 아케이드풍 영어 (§2 톤 앤 매너).
+// 픽셀 폰트(Press Start 2P)에 한글 글리프가 없어 인게임 카피는 영어를 쓴다.
+// 죽음/폭발 같은 어휘는 여전히 쓰지 않는다 — 귀엽고 낙천적으로.
 // ----------------------------------------------------------------------------
 
 /** 먹이를 먹었을 때 랜덤으로 하나 뽑아 띄우는 팝업 문구. */
-export const EAT_WORDS = ["냠!", "냠냠!", "꿀꺽!", "맛있다!", "옴뇸뇸"];
+export const EAT_WORDS = ["YUM!", "GULP!", "TASTY!", "DELISH!", "NICE!"];
 
 /** 가시에 찔렸을 때의 팝업 문구. */
-export const HIT_WORDS = ["아야!", "따끔!", "아이코!", "뾰족해!"];
+export const HIT_WORDS = ["OUCH!", "YIKES!", "BOO!", "ARGH!"];
 
 /**
  * 캔버스 글자용 폰트 스택.
- * Gaegu는 globals.css에서 웹폰트로 불러온다 — 로드 전이나 오프라인일 때를
- * 대비해 폴백을 함께 적는다 (부가 기능이 게임을 죽이면 안 된다, §12).
+ * Press Start 2P는 globals.css에서 웹폰트로 불러온다 — 로드 전이나 오프라인일
+ * 때를 대비해 monospace 폴백을 함께 적는다 (부가 기능이 게임을 죽이면 안 된다, §12).
+ * ⚠️ 한글 글리프가 없으므로 캔버스에 찍는 문구는 반드시 영어로 (§2).
  */
-export const CANVAS_FONT = `"Gaegu", "Comic Sans MS", cursive`;
+export const CANVAS_FONT = `"Press Start 2P", monospace`;

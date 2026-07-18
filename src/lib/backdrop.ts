@@ -58,12 +58,12 @@ export function drawBackdrop(
   for (let i = 0; i < STAR_COUNT; i++) {
     const x = hash(i * 3 + 1) * w;
     const y = hash(i * 3 + 2) * h;
-    const size = 1 + hash(i * 3 + 3) * 1.6;
+    // 크기를 2px/4px 두 단계로 양자화 — 원 대신 네모 별이 픽셀 아트 톤 (§11)
+    const size = Math.floor(1 + hash(i * 3 + 3) * 1.6) * 2;
     ctx.save();
     ctx.globalAlpha *= 0.25 + hash(i * 7 + 5) * 0.5; // 별마다 밝기를 다르게
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
+    // 좌표를 정수로 내림 — 소수 좌표는 안티앨리어싱으로 뭉개져 도트가 흐려진다
+    ctx.fillRect(Math.floor(x), Math.floor(y), size, size);
     ctx.restore();
   }
   ctx.restore();

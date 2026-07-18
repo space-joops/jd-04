@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fitCanvas } from "@/lib/canvas";
-import { EAT_WORDS, HIT_WORDS, COLORS } from "@/lib/constants";
+import { EAT_WORDS, HIT_WORDS, COLORS, JUNK_COLORS } from "@/lib/constants";
 import { drawBackdrop } from "@/lib/backdrop";
 import { drawMascot } from "@/lib/mascot";
 import {
@@ -40,8 +40,6 @@ import { GameUi, type GameUiState } from "./game-ui";
 // 밸런스를 바꿀 때는 로직이 아니라 여기부터 만진다.
 // ----------------------------------------------------------------------------
 const TUNE = {
-  followSpeed: 7, // 포인터 추적 감쇠 계수 — 클수록 즉각, 작을수록 미끄덩 (§6-1)
-  touchOffsetY: 72, // 터치일 때 목표점을 위로 올리는 양 — 손가락이 캐릭터를 가리니까
   hudClearance: 64, // 상단 HUD 영역 침범 금지선 (y < r + 이 값 불가)
 
   startR: 24, // 시작 반지름 (§6-2)
@@ -67,14 +65,15 @@ const TUNE = {
   demoInterval: 1.5, // 타이틀 데모 스폰 간격(초) — 지터 없음
   maxDt: 0.05, // dt 상한 — 백그라운드 탭 복귀 시 순간이동 방지 (§12)
 
-  // --- Joystick & Thrust ---
-  joystickMaxRadius: 60,
-  maxFuel: 3000,
-  fuelRegen: 600,
-  thrustSpeeds: [100, 250, 450], // 속도 더 낮춤
-  thrustCosts: [10, 40, 100], // 소모량 2배 증가
-  friction: 1.2, // 우주 관성: 천천히 감소하는 마찰
-  minSpeed: 30, // 최소 유지 속도
+  // --- 버추얼 조이스틱 & 추진 (§6-1) ---
+  // 누른 지점이 조이스틱 원점이 되고, 끈 거리(기울기)에 따라 추진 3단계가 정해진다.
+  joystickMaxRadius: 60, // 손잡이가 원점에서 벗어날 수 있는 최대 반경(px)
+  maxFuel: 3000, // 연료 최대치 — 끝까지 기울이면 30초, 살살 쓰면 5분
+  fuelRegen: 600, // 조이스틱을 놓고 있을 때의 초당 연료 회복량
+  thrustSpeeds: [100, 250, 450], // 단계별 가속량(px/s²) — 기울기 약/중/강
+  thrustCosts: [10, 40, 100], // 단계별 초당 연료 소모 — 세게 밀수록 기하급수로 비싸다
+  friction: 1.2, // 우주 관성: 추진을 멈춰도 바로 서지 않고 지수 감쇠로 미끄러진다
+  minSpeed: 30, // 최소 유지 속도(px/s) — 완전히 멈추지 않고 늘 둥둥 떠다니는 부유감
 } as const;
 
 type Phase = "title" | "playing" | "over";
@@ -107,13 +106,15 @@ export default function JoopsGame() {
     let best = loadBest();
     let newBest = false;
 
-    // --- Joystick State ---
+    // --- 조이스틱 상태 ---
+    // 원점(Ox,Oy)은 "누른 지점", 손잡이(Cx,Cy)는 "지금 손가락 위치".
+    // 둘의 차이 벡터가 추진 방향·세기가 된다 (§6-1).
     let joyActive = false;
     let joyOx = 0;
     let joyOy = 0;
     let joyCx = 0;
     let joyCy = 0;
-    let thrustLevel = 0;
+    let thrustLevel = 0; // 추진 단계 0~2 — 기울기(끈 거리)로 결정
     // number 명시: as const 리터럴 타입(3000)이 그대로 옮으면 재대입이 막힌다
     let fuel: number = TUNE.maxFuel;
     let vx = 0;
@@ -246,46 +247,51 @@ export default function JoopsGame() {
         }
       }
 
-      // --- 주인공 이동 ---
+      // --- 주인공 이동: 조이스틱 추진 + 우주 관성 (§6-1) ---
       if (phase === "playing") {
         if (joyActive && fuel > 0) {
           const dx = joyCx - joyOx;
           const dy = joyCy - joyOy;
           const dist = Math.hypot(dx, dy);
-          
+
+          // 5px 미만은 데드존 — 손떨림으로 연료가 새는 것 방지
           if (dist > 5) {
+            // 기울기(끈 거리)를 3단계로 양자화 — 아날로그보다 "밟는 맛"이 분명하다
             if (dist < 25) thrustLevel = 0;
             else if (dist < 45) thrustLevel = 1;
             else thrustLevel = 2;
-            
+
             const cost = TUNE.thrustCosts[thrustLevel] * dt;
             if (fuel >= cost) {
               fuel -= cost;
+              // 속도에 "더한다"(가속) — 위치를 직접 옮기면 관성이 사라진다
               const speed = TUNE.thrustSpeeds[thrustLevel];
               vx += (dx / dist) * speed * dt;
               vy += (dy / dist) * speed * dt;
             } else {
-              fuel = 0;
+              fuel = 0; // 잔량이 소모량보다 적으면 바닥 — 음수 방지
             }
           }
         } else {
+          // 조이스틱을 놓고 있어야 연료가 찬다 — "쉬어 가는" 리듬을 만드는 장치
           fuel = Math.min(TUNE.maxFuel, fuel + TUNE.fuelRegen * dt);
         }
-        
+
+        // 지수 감쇠 마찰 — 진공이지만 게임적으로는 살짝 저항이 있어야 조작 가능
         vx -= vx * TUNE.friction * dt;
         vy -= vy * TUNE.friction * dt;
-        
-        // 최소 유지 속도 보정 (항상 우주를 떠다니게 함)
+
+        // 최소 유지 속도 보정 — 완전히 멈추지 않고 항상 우주를 떠다니게
         const currentSpeed = Math.hypot(vx, vy);
         if (currentSpeed > 0 && currentSpeed < TUNE.minSpeed) {
           vx = (vx / currentSpeed) * TUNE.minSpeed;
           vy = (vy / currentSpeed) * TUNE.minSpeed;
         }
-        
+
         mascot.x += vx * dt;
         mascot.y += vy * dt;
-        
-        // 화면 밖·HUD 영역 침범 금지 (벽에 튕김)
+
+        // 화면 밖·HUD 영역 침범 금지 — 벽에 반발 계수 0.8로 튕긴다 (통통 튀는 손맛)
         if (mascot.x < mascot.r) { mascot.x = mascot.r; vx *= -0.8; }
         if (mascot.x > w - mascot.r) { mascot.x = w - mascot.r; vx *= -0.8; }
         if (mascot.y < mascot.r + TUNE.hudClearance) { mascot.y = mascot.r + TUNE.hudClearance; vy *= -0.8; }
@@ -377,7 +383,7 @@ export default function JoopsGame() {
         drawJunk(ctx, j, scale);
       }
 
-      // --- Thrust Exhaust Animation ---
+      // --- 추진 분사 불꽃 — "지금 연료를 태우고 있다"의 시각적 전달 ---
       if (joyActive && phase === "playing" && fuel > 0) {
         const dx = joyCx - joyOx;
         const dy = joyCy - joyOy;
@@ -386,22 +392,24 @@ export default function JoopsGame() {
           ctx.save();
           ctx.translate(mascot.x, mascot.y);
           ctx.rotate(Math.atan2(dy, dx)); // 이동 방향을 바라보게 회전
-          
-          // 강도에 따른 불꽃 크기와 떨림
+
+          // 단계가 셀수록 불꽃이 길고 넓다 — 연료 소모량을 몸으로 느끼게
           const flameLengths = [mascot.r * 1.5, mascot.r * 2.2, mascot.r * 3.5];
           const flameWidths = [mascot.r * 0.5, mascot.r * 0.8, mascot.r * 1.3];
-          const len = flameLengths[thrustLevel] * (0.7 + Math.random() * 0.6); // 떨림 효과
+          // 매 프레임 길이를 ±30% 흔든다 — 일정하면 스티커처럼 죽어 보인다
+          const len = flameLengths[thrustLevel] * (0.7 + Math.random() * 0.6);
           const wid = flameWidths[thrustLevel];
-          
+
           ctx.beginPath();
           ctx.moveTo(-mascot.r + 5, wid / 2);
           ctx.lineTo(-mascot.r - len, 0); // 꼬리(불꽃 끝)
           ctx.lineTo(-mascot.r + 5, -wid / 2);
           ctx.closePath();
-          
-          const thrustColors = ["#8ecbff", "#ffd166", "#ff8080"];
+
+          // 단계 색: 약(하늘)→중(노랑)→강(빨강) — 신호등처럼 직관적으로 (§11 팔레트)
+          const thrustColors = [JUNK_COLORS.satellite, COLORS.accent, COLORS.danger];
           ctx.fillStyle = thrustColors[thrustLevel];
-          ctx.globalAlpha = 0.8;
+          ctx.globalAlpha *= 0.8;
           ctx.fill();
           ctx.restore();
         }
@@ -414,38 +422,44 @@ export default function JoopsGame() {
 
       for (const p of popups) drawPopup(ctx, p);
 
-      // --- Virtual Joystick Draw ---
+      // --- 버추얼 조이스틱 — 원점(큰 원)과 손잡이(작은 원) ---
+      // 누르는 동안만 그린다: 고정 조이스틱보다 화면이 깨끗하고,
+      // "아무 데나 눌러도 된다"는 것을 스스로 설명한다.
       if (joyActive && phase === "playing") {
         ctx.save();
-        ctx.globalAlpha = 0.2;
+        ctx.globalAlpha *= 0.2; // 배경 판은 연하게 — 게임 화면을 가리면 안 된다
         ctx.beginPath();
         ctx.arc(joyOx, joyOy, TUNE.joystickMaxRadius, 0, Math.PI * 2);
         ctx.fillStyle = "#fff";
         ctx.fill();
-        
-        ctx.globalAlpha = 0.8;
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha *= 0.8;
         ctx.beginPath();
         ctx.arc(joyCx, joyCy, 15, 0, Math.PI * 2);
-        const thrustColors = ["#8ecbff", "#ffd166", "#ff8080"];
+        // 손잡이 색 = 분사 불꽃과 같은 단계 색 — 연료가 없으면 회색으로 죽는다
+        const thrustColors = [JUNK_COLORS.satellite, COLORS.accent, COLORS.danger];
         ctx.fillStyle = fuel > 0 ? thrustColors[thrustLevel] : "#555";
         ctx.fill();
         ctx.restore();
       }
 
-      // --- Fuel Bar Draw ---
+      // --- 연료 게이지 — 상단 중앙, HUD 침범 금지선 바로 아래 ---
       if (phase === "playing") {
         ctx.save();
         const barW = 100;
         const barH = 8;
         const barX = w / 2 - barW / 2;
         const barY = TUNE.hudClearance - 15;
-        
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
+
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; // 빈 칸 배경 — 잔량이 줄어든 게 보이게
         ctx.fillRect(barX, barY, barW, barH);
-        
-        ctx.fillStyle = fuel > (TUNE.maxFuel * 0.2) ? "#66fcf1" : "#ff8080";
+
+        // 20% 이하면 빨강 경고 — 숫자 없이 색만으로 "위험"을 전달
+        ctx.fillStyle = fuel > (TUNE.maxFuel * 0.2) ? JUNK_COLORS.fuel : COLORS.danger;
         ctx.fillRect(barX, barY, barW * (fuel / TUNE.maxFuel), barH);
-        
+
         ctx.strokeStyle = "rgba(255,255,255,0.8)";
         ctx.lineWidth = 2;
         ctx.strokeRect(barX, barY, barW, barH);

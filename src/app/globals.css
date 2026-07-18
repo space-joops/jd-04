@@ -1,13 +1,14 @@
-/* 손글씨 폰트 Gaegu(개구쟁이체) — CLAUDE.md §11.
+/* 픽셀 폰트 Press Start 2P — CLAUDE.md §11.
+   (한글 글리프가 없으므로 인게임 카피는 전부 영어 — §2 참고.)
    next/font 대신 CSS @import를 쓰는 이유: next/font는 빌드 시점에 폰트를
    내려받아 네트워크가 없으면 빌드가 통째로 실패한다. CSS 방식은 오프라인이면
    브라우저가 조용히 폴백 폰트로 넘어간다 — 부가 기능이 게임을 죽이면 안 된다(§12). */
-@import url("https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 @import "tailwindcss";
 
-/* Tailwind 4 스타일 테마 확장 — font-doodle 유틸리티로 쓸 수 있게 등록 */
+/* Tailwind 4 스타일 테마 확장 — font-pixel 유틸리티로 쓸 수 있게 등록 */
 @theme {
-  --font-doodle: "Gaegu", "Comic Sans MS", cursive;
+  --font-pixel: "Press Start 2P", monospace;
 }
 
 html,
@@ -20,7 +21,9 @@ body {
      캔버스가 뜨기 전/밖의 HTML 영역도 같은 색이어야 이음새가 안 보인다. */
   background: #141838;
   color: #f4f6ff;
-  font-family: var(--font-doodle);
+  font-family: var(--font-pixel);
+  /* 이미지 확대 시 보간 없이 도트를 살린다 — 픽셀 아트 톤 유지 (§11) */
+  image-rendering: pixelated;
 
   /* 게임 조작(드래그) 중에 브라우저 기본 동작이 끼어들지 못하게 막는다 (§13) */
   user-select: none; /* 드래그가 텍스트 선택으로 변하는 것 방지 */
