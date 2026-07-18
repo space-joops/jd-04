@@ -71,6 +71,12 @@ export default function Home() {
             TAP TO START
           </Link>
           <BestScore />
+          <Link
+            href="/rank"
+            className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+          >
+            🏆 랭킹 보기
+          </Link>
           <InstallButton />
         </div>
 

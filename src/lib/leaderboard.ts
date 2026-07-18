@@ -62,13 +62,18 @@ const HEADERS = {
   "Content-Type": "application/json",
 };
 
-/** 단판 TOP N — 점수 내림차순, 동점이면 먼저 세운 기록이 위. 실패하면 null. */
-export async function fetchTopRuns(): Promise<RunRow[] | null> {
+/**
+ * 단판 TOP N — 점수 내림차순, 동점이면 먼저 세운 기록이 위. 실패하면 null.
+ * @param limit 게임오버 화면은 기본 5줄, 랭킹 페이지(/rank)는 10줄을 쓴다
+ */
+export async function fetchTopRuns(
+  limit: number = TOP_LIMIT,
+): Promise<RunRow[] | null> {
   if (!leaderboardEnabled) return null;
   try {
     const res = await fetch(
       `${URL}/rest/v1/scores?select=name,score` +
-        `&order=score.desc,created_at.asc&limit=${TOP_LIMIT}`,
+        `&order=score.desc,created_at.asc&limit=${limit}`,
       { headers: HEADERS },
     );
     if (!res.ok) return null;
@@ -80,12 +85,14 @@ export async function fetchTopRuns(): Promise<RunRow[] | null> {
 }
 
 /** 누적 TOP N — 통산 수거량 내림차순. 실패하면 null. */
-export async function fetchTopTotals(): Promise<TotalRow[] | null> {
+export async function fetchTopTotals(
+  limit: number = TOP_LIMIT,
+): Promise<TotalRow[] | null> {
   if (!leaderboardEnabled) return null;
   try {
     const res = await fetch(
       `${URL}/rest/v1/pets?select=id,name,total_eaten` +
-        `&order=total_eaten.desc,updated_at.asc&limit=${TOP_LIMIT}`,
+        `&order=total_eaten.desc,updated_at.asc&limit=${limit}`,
       { headers: HEADERS },
     );
     if (!res.ok) return null;
