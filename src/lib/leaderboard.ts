@@ -17,8 +17,9 @@
 
 import type { StoredPet } from "./storage";
 
-/** 단판 랭킹 한 줄 — 게임 한 판의 기록. */
+/** 단판 랭킹 한 줄 — 펫당 하나뿐인 "자기 최고 기록". id는 내 펫 강조용. */
 export type RunRow = {
+  id: string;
   name: string;
   score: number;
 };
@@ -63,7 +64,9 @@ const HEADERS = {
 };
 
 /**
- * 단판 TOP N — 점수 내림차순, 동점이면 먼저 세운 기록이 위. 실패하면 null.
+ * 단판 TOP N — **펫당 한 줄**: pets.best_score(자기 기록을 깰 때만 갱신)를
+ * 읽으므로 같은 펫이 1·2등을 동시에 차지하는 일이 없다 (§8-1).
+ * 동점이면 먼저 세운 기록(best_at)이 위. 실패하면 null.
  * @param limit 게임오버 화면은 기본 5줄, 랭킹 페이지(/rank)는 10줄을 쓴다
  */
 export async function fetchTopRuns(
@@ -71,9 +74,10 @@ export async function fetchTopRuns(
 ): Promise<RunRow[] | null> {
   if (!leaderboardEnabled) return null;
   try {
+    // score:best_score — PostgREST 컬럼 별칭: 응답 필드는 score로 온다
     const res = await fetch(
-      `${URL}/rest/v1/scores?select=name,score` +
-        `&order=score.desc,created_at.asc&limit=${limit}`,
+      `${URL}/rest/v1/pets?select=id,name,score:best_score&best_score=gt.0` +
+        `&order=best_score.desc,best_at.asc.nullslast&limit=${limit}`,
       { headers: HEADERS },
     );
     if (!res.ok) return null;

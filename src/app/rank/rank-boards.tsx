@@ -97,8 +97,8 @@ export function RankBoards() {
       : runs.map((r) => ({
           name: r.name,
           value: String(r.score),
-          // 단판 행에는 펫 id가 없어 이름으로만 강조한다 (동명 허용)
-          mine: pet !== null && r.name === pet.name,
+          // 펫당 한 줄 (자기 최고 기록) — id로 내 펫을 강조 (§8-1)
+          mine: pet !== null && r.id === pet.id,
         }));
   const totalRows =
     totals == null

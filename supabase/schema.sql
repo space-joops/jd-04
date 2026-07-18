@@ -8,7 +8,7 @@
 -- - pets: "등록된 펫" 하나당 한 행. id는 클라이언트가 만들어 localStorage에
 --   보관하는 uuid — 이름이 같아도 다른 펫이 섞이지 않는 경쟁 키.
 --   누적 쓰레기(total_eaten)·누적 점수·단판 최고를 여기서 관리한다.
--- - scores: 게임 한 판 = 한 행 (단판 랭킹의 원천).
+-- - scores: 게임 한 판 = 한 행 (판 히스토리 — 단판 랭킹은 pets.best_score가 원천).
 -- - 펫 이름은 유니크(대소문자 무시) — register_pet이 등록 시점에 선점한다.
 -- - 쓰기는 전부 RPC 두 개(register_pet·submit_result)로만 — anon의 직접
 --   INSERT/UPDATE를 막아서, 이름 선점과 누적 가산이 DB 안에서 원자적으로 굴러간다.
@@ -24,10 +24,21 @@ create table if not exists public.pets (
   -- "총 수거한 쓰레기양" — 누적 경쟁의 기준 (§8-1)
   total_eaten bigint not null default 0 check (total_eaten >= 0),
   total_score bigint not null default 0 check (total_score >= 0),
+  -- 단판 최고점 — 단판 랭킹의 원천. 자기 기록을 깰 때만 갱신되므로
+  -- 랭킹에 같은 펫이 두 번 오르는 일이 없다 (§8-1)
   best_score integer not null default 0 check (best_score >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- 단판 최고점을 "언제" 세웠는지 — 동점일 때 먼저 세운 쪽이 위 (v3.1 추가)
+alter table public.pets add column if not exists best_at timestamptz;
+-- 기존 펫 백필: 최고점은 있는데 시각이 없으면 마지막 활동 시각으로 근사
+update public.pets set best_at = updated_at where best_at is null and best_score > 0;
+
+-- 단판 랭킹의 읽기 패턴 그대로 인덱스
+create index if not exists pets_best_idx
+  on public.pets (best_score desc, best_at asc);
 
 -- 누적 랭킹의 유일한 읽기 패턴 그대로 인덱스
 create index if not exists pets_total_idx
@@ -155,10 +166,11 @@ begin
     raise exception 'invalid eaten';
   end if;
 
-  -- 누적 가산 — 등록된 펫만
+  -- 누적 가산 — 등록된 펫만. best_score·best_at은 자기 기록을 깰 때만 움직인다
   update pets set
     total_score = total_score + p_score,
     total_eaten = total_eaten + p_eaten,
+    best_at = case when p_score > best_score then now() else best_at end,
     best_score = greatest(best_score, p_score),
     updated_at = now()
   where id = p_id;
@@ -166,7 +178,8 @@ begin
     raise exception 'unregistered pet';
   end if;
 
-  -- 단판 기록 — 이름은 pets에 등록된 것을 쓴다 (스냅숏)
+  -- 판 히스토리 — 랭킹은 pets.best_score가 담당하고, 이 테이블은 모든 판의
+  -- 기록 보관용이다 (최근 판·통계 같은 미래 기능의 재료)
   insert into scores (name, score, eaten, pet_id)
   select name, p_score, p_eaten, p_id from pets where id = p_id;
 end;

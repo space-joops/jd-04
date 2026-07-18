@@ -110,8 +110,8 @@ export function Leaderboard({ score, eaten, pet }: Props) {
           <ol className="font-pixel-ko w-full text-xs leading-loose">
             {tab === "run"
               ? (runs as RunRow[]).map((r, i) =>
-                  // 단판 행에는 펫 id가 없어 이름으로만 강조한다 (동명 허용)
-                  row(i, r.name, r.name === pet.name, String(r.score)),
+                  // 펫당 한 줄 (자기 최고 기록) — id로 내 펫을 강조 (§8-1)
+                  row(i, r.name, r.id === pet.id, String(r.score)),
                 )
               : (totals as TotalRow[]).map((r, i) =>
                   row(i, r.name, r.id === pet.id, `${r.total_eaten}개`),
