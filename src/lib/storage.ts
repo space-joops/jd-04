@@ -50,3 +50,25 @@ export function saveName(name: string): void {
     // 저장 실패는 게임 진행에 영향을 주지 않는다.
   }
 }
+
+/** 스토리 인트로를 봤는지 저장하는 키 — 첫 방문에만 자동 재생 (§4). */
+const INTRO_KEY = "sjs-intro";
+
+/** 스토리 인트로를 이미 봤는가? 판단 불가(시크릿 모드 등)면 "봤다"로 —
+ * 애매할 때 인트로를 강제로 또 트는 것보다 안 트는 쪽이 덜 성가시다. */
+export function hasSeenIntro(): boolean {
+  try {
+    return localStorage.getItem(INTRO_KEY) !== null;
+  } catch {
+    return true;
+  }
+}
+
+/** 스토리 인트로를 봤다고 기록한다. 실패해도 조용히 넘어간다. */
+export function markIntroSeen(): void {
+  try {
+    localStorage.setItem(INTRO_KEY, "1");
+  } catch {
+    // 다음 방문에 인트로가 또 나올 뿐 — 게임엔 지장 없다.
+  }
+}

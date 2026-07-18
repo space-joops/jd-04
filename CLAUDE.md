@@ -57,7 +57,7 @@
 
 | 라우트 | 역할 |
 |---|---|
-| `/` | 랜딩 페이지: 타이틀 + 규칙 + TAP TO START(`/play?start=1`) + 최고 기록(`BestScore`) + 앱 설치 버튼, 그리고 **푸터 아래**에 세계관 스토리(§2)를 **스타워즈 오프닝 크롤**(perspective+rotateX 무한 루프, 위쪽 페이드 마스크, prefers-reduced-motion이면 정지)로. 스토리를 맨 아래 둔 이유 — 모바일 첫 화면에서 버튼이 잘리면 안 된다. 배경에서 **어트랙트 모드**(`AttractSky`) — 마스코트가 혼자 떨어지는 쓰레기를 받아먹는 오락실 대기 화면. 가시 없음, 60% 속도, 소리·점수 없음. |
+| `/` | 랜딩 페이지: 타이틀 + 규칙 + TAP TO START(`/play?start=1`) + 최고 기록(`BestScore`) + 앱 설치 버튼. 세계관 스토리(§2)는 **첫 방문에만 전체화면 스타워즈 크롤 인트로**(`StoryIntro`)로 1회 재생 — 18초, 탭/ESC로 스킵, 끝나면 자동 닫힘, 본 여부는 `localStorage`(키: `sjs-intro`). 이후 방문은 푸터의 "스토리 다시보기"로만 연다. 이렇게 한 이유 — 본문에 두면 모바일 첫 화면에서 버튼을 밀어내고, 푸터 아래는 아무도 안 본다. prefers-reduced-motion이면 크롤 대신 정지 화면. 배경에서 **어트랙트 모드**(`AttractSky`) — 마스코트가 혼자 떨어지는 쓰레기를 받아먹는 오락실 대기 화면. 가시 없음, 60% 속도, 소리·점수 없음. |
 | `/play` | 게임 본편. 내부 상태 기계 `Phase = "title" → "playing" → "over"`. **`?start=1`로 진입하면(랜딩의 TAP TO START) 타이틀을 건너뛰고 즉시 시작** — 두 번 탭하게 하지 않는다. 직접 방문은 평소처럼 타이틀 데모. 오디오는 게임 중 첫 터치가 깨운다(§12). HUD 오른쪽 **하트 옆 HOME 버튼**으로 언제든 랜딩("/")으로 복귀 — 이 링크만 `pointer-events-auto`이며 HUD 침범 금지선 안이라 조이스틱과 안 겹친다. |
 
 **Phase 규칙:**
@@ -279,7 +279,8 @@ src/
 │   ├── page.tsx           "/" 랜딩 페이지: 스토리·규칙·시작 버튼·버전 (서버 컴포넌트, §4)
 │   ├── attract-sky.tsx    랜딩 배경 어트랙트 모드 — 마스코트 혼자 데모 플레이
 │   ├── best-score.tsx     최고 기록 표시 (useSyncExternalStore + storage 이벤트)
-│   ├── install-button.tsx "홈 화면에 추가" 버튼 (beforeinstallprompt, iOS 안내)
+│   ├── story-intro.tsx    첫 방문 스토리 인트로 (전체화면 크롤 1회 + 다시보기)
+│   ├── install-button.tsx "앱 설치" 버튼 (beforeinstallprompt, 환경별 안내)
 │   ├── manifest.ts        웹 앱 매니페스트 (PWA 설치, §13)
 │   ├── pwa-icon.tsx       앱 아이콘 코드 생성 (ImageResponse — mascot.ts 도트의 거울)
 │   ├── icon-192.png/      └ 매니페스트 아이콘 라우트 (192px)
@@ -301,7 +302,7 @@ src/
     ├── sound.ts           Web Audio 신시사이저
     ├── haptics.ts         진동 피드백 (미지원 환경 조용히 생략)
     ├── canvas.ts          DPR 대응 캔버스 리사이즈
-    ├── storage.ts         최고 기록·이니셜 localStorage
+    ├── storage.ts         localStorage (최고 기록 sjs-best · 이니셜 sjs-name · 인트로 sjs-intro)
     └── leaderboard.ts     온라인 리더보드 Supabase REST 클라이언트 (§8-1)
 
 supabase/schema.sql      scores 테이블 + RLS 정책 (Supabase SQL Editor에서 실행)

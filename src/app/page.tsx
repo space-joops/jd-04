@@ -18,6 +18,7 @@ import pkg from "../../package.json";
 import { AttractSky } from "./attract-sky";
 import { BestScore } from "./best-score";
 import { InstallButton } from "./install-button";
+import { StoryIntro } from "./story-intro";
 
 export default function Home() {
   return (
@@ -73,48 +74,18 @@ export default function Home() {
           <InstallButton />
         </div>
 
-        {/* ---- 각주 — 자매작 크로스오버 표기 + 버전 ---- */}
-        <footer className="font-pixel-ko mt-auto text-xs text-gray-500">
-          이 아이는 STELLAPET 프로젝트의 지상 육성장에서 자랐습니다.{" "}
-          <span className="font-pixel text-[10px] text-gray-600">
-            v{pkg.version}
-          </span>
+        {/* ---- 각주 — 크로스오버 표기 + 버전 + 스토리 다시보기 ----
+             세계관 스토리(§2)는 첫 방문에만 전체화면 인트로로 재생된다
+             (StoryIntro). 여기 링크는 다시 보고 싶은 사람용. */}
+        <footer className="font-pixel-ko mt-auto flex flex-col items-center gap-2 text-xs text-gray-500">
+          <StoryIntro />
+          <p>
+            이 아이는 STELLAPET 프로젝트의 지상 육성장에서 자랐습니다.{" "}
+            <span className="font-pixel text-[10px] text-gray-600">
+              v{pkg.version}
+            </span>
+          </p>
         </footer>
-
-        {/* ---- 세계관 스토리 (STELLAPET 세계관 공유, §2) ----
-             스타워즈 오프닝 크롤: 우주 저편으로 흘러가는 자막 (globals.css).
-             푸터 아래(스크롤 영역)에 둔다 — 첫 화면은 버튼까지만 보여주고,
-             이야기가 궁금한 사람만 내려서 본다. 텍스트는 DOM에 그대로
-             있으므로 스크린리더는 평범하게 읽는다. */}
-        <section
-          aria-label="게임 스토리"
-          className="starwars-stage h-64 w-full md:h-80"
-        >
-          <div className="starwars-crawl font-pixel-ko flex flex-col gap-10 text-base leading-relaxed text-gray-200 md:text-lg">
-            <p>
-              2031년, 걱정으로만 떠돌던 케슬러 신드롬이 진짜가 됐다.
-              <br />
-              파편이 파편을 부수고, 그 파편이 또 파편을 낳았다.
-              <br />
-              지구 저궤도는 <b style={{ color: COLORS.accent }}>8,000톤짜리 쓰레기 구름</b>이 됐다.
-            </p>
-            <p>
-              인류의 대답은 더 큰 로켓도, 레이저도 아니었다.
-              <br />
-              <b style={{ color: COLORS.mascot }}>우주쓰레기를 먹고 자라는 생체 위성</b> —
-              <br />
-              지상에서 정성껏 키워, 하나씩 궤도로 올려 보냈다.
-            </p>
-            <p>
-              30년이 지난 지금. 그중에서도 제일{" "}
-              <b style={{ color: COLORS.mascot }}>입이 큰 아이</b>가
-              <br />
-              오늘도 저궤도로 출근한다.
-              <br />
-              <span className="text-xl text-white">&ldquo;우주 냠냠!&rdquo;</span>
-            </p>
-          </div>
-        </section>
       </div>
     </main>
   );

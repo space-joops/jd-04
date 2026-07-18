@@ -21,17 +21,18 @@ body {
 }
 
 /* ----------------------------------------------------------------------------
-   스타워즈 오프닝 크롤 (랜딩 페이지 스토리, §4)
-   perspective 무대 안에서 rotateX로 눕힌 텍스트가 아래에서 위로 끝없이 흐른다.
+   스타워즈 오프닝 크롤 (첫 방문 스토리 인트로, §4 · story-intro.tsx)
+   perspective 무대 안에서 rotateX로 눕힌 텍스트가 아래에서 위로 흐른다.
    - 무대(stage): 원근감 + 위아래 페이드 마스크 (글이 "우주 저편으로" 사라지게)
-   - 크롤(crawl): transform-origin을 바닥에 둬야 멀어질수록 위쪽이 좁아진다
+   - 크롤(crawl-once): transform-origin을 바닥에 둬야 멀어질수록 위쪽이 좁아진다.
+     1회 재생(forwards) — animationend 이벤트로 인트로가 스스로 닫힌다.
 ---------------------------------------------------------------------------- */
 @keyframes sw-crawl {
   from {
-    transform: rotateX(24deg) translateY(75%);
+    transform: rotateX(24deg) translateY(100%);
   }
   to {
-    transform: rotateX(24deg) translateY(-160%);
+    transform: rotateX(24deg) translateY(-170%);
   }
 }
 
@@ -43,14 +44,15 @@ body {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28%, black 96%, transparent 100%);
 }
 
-.starwars-crawl {
+.starwars-crawl-once {
   transform-origin: 50% 100%;
-  animation: sw-crawl 32s linear infinite;
+  animation: sw-crawl 18s linear forwards;
 }
 
-/* 움직이는 글이 힘든 사용자에게는 정지 화면으로 (§13 접근성) */
+/* 움직이는 글이 힘든 사용자에게는 정지 화면으로 (§13 접근성).
+   애니메이션이 없으면 끝 이벤트도 없다 — TAP TO SKIP으로 닫는다. */
 @media (prefers-reduced-motion: reduce) {
-  .starwars-crawl {
+  .starwars-crawl-once {
     animation: none;
     transform: none;
   }
