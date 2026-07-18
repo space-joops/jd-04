@@ -89,7 +89,22 @@ export function stepJunk(j: Junk, dt: number): void {
 }
 
 /**
- * 낙하물 그리기. 픽셀 아트 — 종류는 색+도트 실루엣으로 구분한다 (§11).
+ * X자 눈 하나를 그린다 (캔의 어질어질한 표정용).
+ * 도트(fillRect)만으로는 대각선이 안 나오므로, 십자 막대를 45° 돌려서 만든다.
+ * 픽셀 문법의 예외지만 이 크기(2~3px)에서는 도트 X와 구분되지 않는다.
+ */
+function drawXEye(ctx: CanvasRenderingContext2D, ex: number, ey: number): void {
+  ctx.save();
+  ctx.translate(ex, ey);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillRect(-0.75, -0.25, 1.5, 0.5);
+  ctx.fillRect(-0.25, -0.75, 0.5, 1.5);
+  ctx.restore();
+}
+
+/**
+ * 낙하물 그리기. 픽셀 아트 — 종류는 색+도트 실루엣+표정으로 구분한다 (§11).
+ * "무표정한 물체는 없다" (§5) — 종류마다 성격이 다른 도트 얼굴을 갖는다.
  * 그리기 함수를 이 파일에 격리해 두었으므로, 아트 스타일을 갈아탈 때
  * 여기만 갈아 끼우면 된다.
  *
@@ -118,10 +133,14 @@ export function drawJunk(
       ctx.fillStyle = JUNK_COLORS.satellite;
       ctx.fillRect(-4, -1, 3, 2); // 왼쪽 전지판
       ctx.fillRect(1, -1, 3, 2); // 오른쪽 전지판
-      ctx.fillStyle = COLORS.space;
-      ctx.fillRect(-1, -2, 2, 4); // 몸통과 전지판 사이 틈 (배경색으로 파냄)
-      ctx.fillStyle = JUNK_COLORS.satellite;
       ctx.fillRect(-2, -3, 4, 6); // 몸통
+      // 웃는 얼굴 — 눈 두 개 + 입꼬리가 올라간 ∪ 입 (§5 "무표정한 물체는 없다")
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-2, -2, 1, 1); // 왼눈
+      ctx.fillRect(1, -2, 1, 1); // 오른눈
+      ctx.fillRect(-2, 0, 1, 1); // 입꼬리 왼쪽 (한 칸 위 — 이게 웃음을 만든다)
+      ctx.fillRect(1, 0, 1, 1); // 입꼬리 오른쪽
+      ctx.fillRect(-1, 1, 2, 1); // 입 가운데
       break;
     }
     case "bolt": {
@@ -129,8 +148,11 @@ export function drawJunk(
       ctx.fillStyle = JUNK_COLORS.bolt;
       ctx.fillRect(-2, -3, 4, 6);
       ctx.fillRect(-3, -2, 6, 4);
+      // 놀란 얼굴 — 볼트의 정체성인 가운데 구멍이 그대로 "오!" 하는 입이 된다
       ctx.fillStyle = COLORS.space;
-      ctx.fillRect(-1, -1, 2, 2); // 가운데 구멍 — 배경색으로 뚫린 것처럼
+      ctx.fillRect(-2, -2, 1, 1); // 왼눈
+      ctx.fillRect(1, -2, 1, 1); // 오른눈
+      ctx.fillRect(-1, 0, 2, 2); // 구멍 = 동그란 입 (원래보다 한 칸 아래)
       break;
     }
     case "can": {
@@ -140,6 +162,10 @@ export function drawJunk(
       ctx.fillStyle = COLORS.space;
       ctx.fillRect(-2, -2, 4, 1); // 위 뚜껑 선
       ctx.fillRect(-2, 2, 4, 1); // 아래 뚜껑 선
+      // 어질어질한 얼굴 — 다 마셔서 버려진 캔이니까 X자 눈 (§5)
+      drawXEye(ctx, -1, -0.5);
+      drawXEye(ctx, 1, -0.5);
+      ctx.fillRect(-0.5, 0.75, 1, 0.75); // 반쯤 벌어진 작은 입
       break;
     }
     case "spring": {
@@ -153,6 +179,10 @@ export function drawJunk(
       ctx.fillRect(0, 1, 2, 1);
       ctx.fillRect(-2, 2, 2, 1);
       ctx.fillRect(0, 3, 2, 1);
+      // 맨 위 코일이 얼굴 — 몸이 다 용수철이라 얼굴 자리는 여기뿐 (§5)
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-1.75, -3.75, 0.5, 0.5); // 왼눈 (점눈 — 코일 폭에 맞춘 미니 사이즈)
+      ctx.fillRect(-0.75, -3.75, 0.5, 0.5); // 오른눈
       break;
     }
     case "hazard": {
@@ -162,8 +192,23 @@ export function drawJunk(
       ctx.fillRect(-1, -4, 2, 8); // 세로 가시
       ctx.fillRect(-4, -1, 8, 2); // 가로 가시
       ctx.fillRect(-2, -2, 4, 4); // 코어
+      // 화난 얼굴 — 유일하게 못된 표정. 색(빨강)과 표정이 같은 말을 해야
+      // 0.3초 안에 "저건 피해야 해"가 전달된다 (§5)
       ctx.fillStyle = COLORS.space;
-      ctx.fillRect(-1, -1, 2, 2); // 코어 가운데 구멍 — 위험물 특유의 "눈"
+      // 안쪽이 내려간 눈썹 = 화남. 대각선은 회전 막대로 (drawXEye와 같은 트릭)
+      ctx.save();
+      ctx.translate(-1, -1.4);
+      ctx.rotate(0.45);
+      ctx.fillRect(-0.7, -0.2, 1.4, 0.45);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(1, -1.4);
+      ctx.rotate(-0.45);
+      ctx.fillRect(-0.7, -0.2, 1.4, 0.45);
+      ctx.restore();
+      ctx.fillRect(-1.5, -0.6, 1, 1); // 왼눈
+      ctx.fillRect(0.5, -0.6, 1, 1); // 오른눈
+      ctx.fillRect(-1, 0.8, 2, 1); // 으르렁 입
       break;
     }
     case "fuel": {
@@ -171,8 +216,11 @@ export function drawJunk(
       ctx.fillStyle = JUNK_COLORS.fuel;
       ctx.fillRect(-2, -3, 4, 6); // 배터리 몸통
       ctx.fillRect(-1, -4, 2, 1); // 전극
+      // 활짝 웃는 얼굴 — 에너지 만땅이라 제일 신났다 (§5)
       ctx.fillStyle = COLORS.space;
-      ctx.fillRect(-1, -1, 2, 2); // 가운데 표시 — 먹이와 다른 "아이템" 티 내기
+      ctx.fillRect(-2, -2, 1, 1); // 왼눈
+      ctx.fillRect(1, -2, 1, 1); // 오른눈
+      ctx.fillRect(-1.5, 0, 3, 1.5); // 크게 벌린 입
       break;
     }
   }

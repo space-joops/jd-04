@@ -48,7 +48,13 @@ const TUNE = {
   shrinkOnHit: 3, // 가시 맞으면 작아지는 양 ("아프면 살짝 작아진다")
 
   eatJudge: 0.65, // 획득 판정 배율 — 보이는 것보다 크게 (§7 황금률)
-  hitJudge: 0.75, // 피격 판정 배율 — 보이는 것(1.5)보다 작게
+  hitJudge: 0.75, // 피격 판정 배율 — 보이는 것보다 작게
+
+  // --- 생명력 연출 (§6-3) ---
+  mouthRange: 120, // 입벌림 사정거리 — 먹이가 (r + 이 값) 안에 오면 입을 벌린다
+  mouthJudgeBonus: 10, // 입 벌린 만큼 획득 판정 보너스(px) — 연출과 판정의 일치 (§7)
+  blinkEvery: [2.2, 4.7], // 다음 깜빡임까지 간격(초) — 이 범위에서 랜덤
+  blinkTime: 0.13, // 눈 감고 있는 시간
   magnetRange: 70, // 자석 발동 범위 (주인공 반지름 + 이 값)
   magnetPull: 80, // 자석 끌어당김 속도(px/s) — 눈치 못 챌 강도로
   eatAnimTime: 0.16, // "꿀꺽" 연출 시간 (§7)
@@ -135,6 +141,13 @@ export default function JoopsGame() {
     let invincible = 0; // 남은 무적 시간
     let shake = 0; // 남은 화면 흔들림 시간
     let overAt = 0; // 게임오버 시각 — 재시작 디바운스용
+
+    // --- 생명력 연출 상태 (§6-3) — 모든 phase에서 돈다 (타이틀 데모도 살아있게) ---
+    let gazeX = 0; // 시선 방향 (지수 감쇠로 부드럽게 — 눈알이 튀지 않게)
+    let gazeY = 0;
+    let mouthOpen = 0; // 입벌림 0~1 (판정 보너스 계산에도 쓰는 값)
+    let blinkIn = 3; // 다음 깜빡임까지 남은 시간
+    let blinkLeft = 0; // 눈 감고 있는 남은 시간
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
     const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest });
@@ -302,6 +315,45 @@ export default function JoopsGame() {
         mascot.y = h * 0.72 + Math.sin(elapsed * 1.6) * 10;
       }
 
+      // --- 생명력 연출 (§6-3): 시선·입벌림·깜빡임 ---
+      // 가장 가까운 먹이 찾기 — 상태 계산이므로 draw가 아니라 update에서 (§12)
+      let nearDist = Infinity;
+      let nearX = 0;
+      let nearY = 0;
+      for (const j of junks) {
+        if (!isFood(j) || j.eatT >= 0) continue; // 꿀꺽 중인 건 이미 입안
+        const d = Math.hypot(j.x - mascot.x, j.y - mascot.y);
+        if (d < nearDist) {
+          nearDist = d;
+          nearX = j.x;
+          nearY = j.y;
+        }
+      }
+      // 시선: 먹이 방향 단위 벡터를 지수 감쇠로 따라간다. 그리기 쪽에서
+      // 픽셀 단위로 반올림하므로, 여기서 부드러워야 눈이 덜컥거리지 않는다.
+      const hasTarget = Number.isFinite(nearDist);
+      const gtx = hasTarget ? (nearX - mascot.x) / (nearDist || 1) : 0;
+      const gty = hasTarget ? (nearY - mascot.y) / (nearDist || 1) : 0;
+      const gazeEase = Math.min(1, dt * 8);
+      gazeX += (gtx - gazeX) * gazeEase;
+      gazeY += (gty - gazeY) * gazeEase;
+      // 입벌림: 사정거리(r+120px) 안에 먹이가 있으면 벌린다. 벌린 만큼
+      // 획득 판정도 커진다(아래 충돌 판정) — 연출과 판정의 일치 (§7)
+      const wantOpen = hasTarget && nearDist < mascot.r + TUNE.mouthRange ? 1 : 0;
+      mouthOpen += (wantOpen - mouthOpen) * Math.min(1, dt * 10);
+      // 깜빡임: 2.2~4.7초마다 0.13초. 간격이 랜덤이어야 로봇 같지 않다.
+      if (blinkLeft > 0) {
+        blinkLeft -= dt;
+      } else {
+        blinkIn -= dt;
+        if (blinkIn <= 0) {
+          blinkLeft = TUNE.blinkTime;
+          blinkIn =
+            TUNE.blinkEvery[0] +
+            Math.random() * (TUNE.blinkEvery[1] - TUNE.blinkEvery[0]);
+        }
+      }
+
       // --- 낙하물: 역순 순회 + splice (§12 — 정방향 순회 중 삭제는 건너뛰기 버그) ---
       for (let i = junks.length - 1; i >= 0; i--) {
         const j = junks[i];
@@ -337,8 +389,11 @@ export default function JoopsGame() {
         if (phase === "playing") {
           const dist = Math.hypot(mascot.x - j.x, mascot.y - j.y);
           if (isFood(j)) {
-            // 획득 판정은 후하게 — "아슬아슬하게 먹었다"로 느껴져야 (§7)
-            if (dist < mascot.r + j.size * TUNE.eatJudge) eat(j);
+            // 획득 판정은 후하게 — "아슬아슬하게 먹었다"로 느껴져야 (§7).
+            // 입을 벌린 만큼 판정도 커진다 — 벌린 입에 들어가는 게 보이면
+            // 판정도 그래야 억울하지 않다 (연출과 판정의 일치, §6-3)
+            const bonus = TUNE.mouthJudgeBonus * mouthOpen;
+            if (dist < mascot.r + j.size * TUNE.eatJudge + bonus) eat(j);
           } else if (invincible <= 0 && dist < mascot.r + j.size * TUNE.hitJudge) {
             junks.splice(i, 1); // 찌른 가시는 소멸 — 무적 끝나자마자 또 찌르는 억울함 방지
             hit();
@@ -418,7 +473,12 @@ export default function JoopsGame() {
       // 무적 중 초당 8회 반투명 깜빡임 — "지금은 안 맞아요"의 시각적 전달 (§8)
       const blinking =
         invincible > 0 && Math.floor(elapsed * TUNE.blinkHz * 2) % 2 === 1;
-      drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1);
+      drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1, {
+        gazeX,
+        gazeY,
+        blink: blinkLeft > 0, // 눈 깜빡임 (§6-3) — 무적 투명 깜빡임과는 별개
+        mouthOpen,
+      });
 
       for (const p of popups) drawPopup(ctx, p);
 
