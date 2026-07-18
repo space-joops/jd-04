@@ -1,26 +1,31 @@
+/* 손글씨 폰트 Gaegu(개구쟁이체) — CLAUDE.md §11.
+   next/font 대신 CSS @import를 쓰는 이유: next/font는 빌드 시점에 폰트를
+   내려받아 네트워크가 없으면 빌드가 통째로 실패한다. CSS 방식은 오프라인이면
+   브라우저가 조용히 폴백 폰트로 넘어간다 — 부가 기능이 게임을 죽이면 안 된다(§12). */
+@import url("https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap");
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Tailwind 4 스타일 테마 확장 — font-doodle 유틸리티로 쓸 수 있게 등록 */
+@theme {
+  --font-doodle: "Gaegu", "Comic Sans MS", cursive;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* 우주색 배경 — 원본은 src/lib/constants.ts의 COLORS.space.
+     캔버스가 뜨기 전/밖의 HTML 영역도 같은 색이어야 이음새가 안 보인다. */
+  background: #141838;
+  color: #f4f6ff;
+  font-family: var(--font-doodle);
+
+  /* 게임 조작(드래그) 중에 브라우저 기본 동작이 끼어들지 못하게 막는다 (§13) */
+  user-select: none; /* 드래그가 텍스트 선택으로 변하는 것 방지 */
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; /* 모바일 탭 시 회색 번쩍임 제거 */
+  -webkit-touch-callout: none; /* iOS 길게 누르기 메뉴 방지 */
+  overscroll-behavior: none; /* 당겨서 새로고침·바운스 방지 */
 }
