@@ -20,7 +20,7 @@ import {
   JUNK_COLORS,
   JUNK_FOOD_KINDS,
 } from "@/lib/constants";
-import { drawBackdrop } from "@/lib/backdrop";
+import { type SkyStage, drawBackdrop } from "@/lib/backdrop";
 import { drawMascot } from "@/lib/mascot";
 import {
   type Junk,
@@ -190,6 +190,10 @@ function GameCore({ pet }: { pet: StoredPet }) {
     let slowT = 0; // 시간 느려짐 남은 시간
     let shield = false; // 방패 보유 (시간제가 아니라 1회 방어)
 
+    // --- 배경 고도 (§11): 점수가 오르면 저궤도 → 정지궤도 → 달 근처 ---
+    let stage: SkyStage = 0;
+    const skyStage = (): SkyStage => (score >= 500 ? 2 : score >= 200 ? 1 : 0);
+
     // --- 조이스틱 상태 ---
     // 원점(Ox,Oy)은 "누른 지점", 손잡이(Cx,Cy)는 "지금 손가락 위치".
     // 둘의 차이 벡터가 추진 방향·세기가 된다 (§6-1).
@@ -251,6 +255,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
       magnetT = 0;
       slowT = 0;
       shield = false;
+      stage = 0; // 새 판은 다시 저궤도부터
       mascot.r = TUNE.startR;
       vx = 0;
       vy = 0;
@@ -330,6 +335,16 @@ function GameCore({ pet }: { pet: StoredPet }) {
           makePopup(EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)], j.x, j.y),
         );
         playEat();
+      }
+
+      // 배경 고도 상승 체크 (§11) — 점수는 eat에서만 오르므로 여기서 본다
+      const next = skyStage();
+      if (next > stage) {
+        stage = next;
+        popups.push(
+          makePopup(next === 1 ? "GEO ORBIT!" : "MOON ZONE!", w / 2, h * 0.3, COLORS.accent),
+        );
+        playStar(); // 고도 도달은 별을 먹은 만큼의 경사
       }
       pushUi();
     };
@@ -595,7 +610,8 @@ function GameCore({ pet }: { pet: StoredPet }) {
         );
       }
 
-      drawBackdrop(ctx, w, h, elapsed); // t: 별 반짝임·달 잠꼬대의 시계 (§11)
+      // t: 별 반짝임·달 잠꼬대의 시계, stage: 점수 고도 (§11)
+      drawBackdrop(ctx, w, h, elapsed, stage);
 
       // 슬로모 (§5-2): 화면 전체에 라벤더 기운 — 끝나기 1초 전부터 옅어진다
       if (slowT > 0) {

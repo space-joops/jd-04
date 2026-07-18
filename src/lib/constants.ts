@@ -13,6 +13,9 @@ export const COLORS = {
   danger: "#ff8080", // 위험 빨강
   heart: "#ff8fab", // 하트 분홍
   ink: "#f4f6ff", // 밝은 글자색
+  earth: "#2f6db8", // 지구 바다 파랑 (배경 고도 연출 §11)
+  land: "#4ea86e", // 지구 대륙 초록
+  moonRock: "#9aa5b5", // 달 표면 회색
 } as const;
 
 /**
