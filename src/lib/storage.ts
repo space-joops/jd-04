@@ -29,3 +29,24 @@ export function saveBest(score: number): void {
     // 저장 실패는 게임 진행에 영향을 주지 않는다.
   }
 }
+
+/** 리더보드 이니셜 저장 키 — 한 번 입력하면 다음 판부터 미리 채워 준다. */
+const NAME_KEY = "sjs-name";
+
+/** 저장된 이니셜을 읽는다. 없거나 실패하면 빈 문자열. */
+export function loadName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** 이니셜을 저장한다. 실패해도 조용히 넘어간다. */
+export function saveName(name: string): void {
+  try {
+    localStorage.setItem(NAME_KEY, name);
+  } catch {
+    // 저장 실패는 게임 진행에 영향을 주지 않는다.
+  }
+}

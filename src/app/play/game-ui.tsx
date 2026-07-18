@@ -8,6 +8,7 @@
 // ============================================================================
 
 import { COLORS } from "@/lib/constants";
+import { Leaderboard } from "./leaderboard";
 
 export type GameUiState = {
   phase: "title" | "playing" | "over";
@@ -88,8 +89,10 @@ export function GameUi({
           ) : (
             <p className="text-sm md:text-lg text-gray-400 mt-2">BEST: {best}</p>
           )}
+          {/* 온라인 리더보드 — env 미설정이면 컴포넌트가 스스로 사라진다 (§8-1) */}
+          <Leaderboard score={score} eaten={eaten} />
           <p
-            className="mt-8 animate-pulse text-2xl md:text-3xl"
+            className="mt-6 animate-pulse text-2xl md:text-3xl"
             style={{ color: COLORS.accent }}
           >
             TAP TO RESTART
