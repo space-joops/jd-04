@@ -37,6 +37,10 @@ export type SkyStage = 0 | 1 | 2;
  *
  * @param t 누적 시간(초) — 별 반짝임·달 잠꼬대의 시계. 생략하면 정지 화면.
  * @param stage 점수 구간별 배경 단계 (§11). 생략하면 저궤도.
+ * @param surface 지구/달 표면 지평선(섹션 4)을 그릴지 여부. 기본 true.
+ *   궤도 모니터(§8-3)처럼 화면 중앙에 직접 큰 지구본을 그리는 화면에서는
+ *   false로 꺼서 배경색·격자·별·잠자는 달만 남긴다 — 지평선과 지구본이
+ *   겹치면 안 되기 때문.
  */
 export function drawBackdrop(
   ctx: CanvasRenderingContext2D,
@@ -44,6 +48,7 @@ export function drawBackdrop(
   h: number,
   t = 0,
   stage: SkyStage = 0,
+  surface = true,
 ): void {
   // 1) 우주색 바탕
   ctx.fillStyle = COLORS.space;
@@ -92,7 +97,9 @@ export function drawBackdrop(
   ctx.restore();
 
   // 4) 고도 연출 (§11) — 점수가 오를수록 풍경이 높이 올라간다
-  if (stage === 0) {
+  // surface=false면 통째로 건너뛴다 — 궤도 모니터(§8-3)처럼 화면 중앙에
+  // 자체적으로 큰 지구본을 그리는 화면과 지평선이 겹치면 안 되기 때문.
+  if (surface && stage === 0) {
     // 저궤도: 화면 아래 지구 지평선 — 바다 띠 + 대륙 조각 + 대기의 빛
     const gy = h - 12;
     ctx.save();
@@ -110,7 +117,7 @@ export function drawBackdrop(
     ctx.fillStyle = JUNK_COLORS.satellite; // 하늘색 재사용 (§11 팔레트)
     ctx.fillRect(0, gy - 2, w, 2);
     ctx.restore();
-  } else if (stage === 1) {
+  } else if (surface && stage === 1) {
     // 정지궤도: 지구가 저 아래 작은 원반이 됐다 — 왼쪽 아래 구석
     ctx.save();
     ctx.translate(56, h - 56);
@@ -126,7 +133,7 @@ export function drawBackdrop(
     ctx.fillRect(0, 0, 2, 2);
     ctx.fillRect(-3, 1, 2, 1);
     ctx.restore();
-  } else {
+  } else if (surface) {
     // 달 근처: 달 표면이 발밑에 — 크레이터 파인 회색 지평
     const gy = h - 16;
     ctx.save();
