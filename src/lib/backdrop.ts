@@ -8,6 +8,7 @@
 // ============================================================================
 
 import { CANVAS_FONT, COLORS, JUNK_COLORS } from "./constants";
+import { drawMoon, getMoonPhase } from "./moon";
 
 /** 모눈 격자 간격(px)과 투명도 — "모눈종이 노트" 컨셉의 뼈대 (§11). */
 const GRID_GAP = 48;
@@ -41,9 +42,12 @@ export type SkyStage = 0 | 1 | 2;
  *   궤도 모니터(§8-3)처럼 화면 중앙에 직접 큰 지구본을 그리는 화면에서는
  *   false로 꺼서 배경색·격자·별·잠자는 달만 남긴다 — 지평선과 지구본이
  *   겹치면 안 되기 때문.
- * @param decorMoon 오른쪽 위 잠자는 초승달(섹션 5)을 그릴지 여부. 기본 true.
+ * @param decorMoon 오른쪽 위 잠자는 달(섹션 5)을 그릴지 여부. 기본 true.
  *   궤도 모니터에서 줌아웃해 진짜 공전하는 달을 그릴 때(줌 레벨 ≥1)는
  *   false로 꺼서 "가짜 달"과 겹치지 않게 한다 (§8-3 기능 6).
+ * @param moonX,moonY 잠자는 달 중심 위치. 기본은 우상단(w-64, 96). 게임 화면은
+ *   HUD 하트와 겹치지 않게 아래로 내린 위치를 넘긴다 (task 1).
+ * @param moonSouth 남반구인가 — 달 위상의 밝은 쪽을 뒤집는다 (§11, 위치 설정).
  */
 export function drawBackdrop(
   ctx: CanvasRenderingContext2D,
@@ -53,6 +57,9 @@ export function drawBackdrop(
   stage: SkyStage = 0,
   surface = true,
   decorMoon = true,
+  moonX = w - 64,
+  moonY = 96,
+  moonSouth = false,
 ): void {
   // 1) 우주색 바탕
   ctx.fillStyle = COLORS.space;
@@ -153,28 +160,13 @@ export function drawBackdrop(
     ctx.restore();
   }
 
-  // 5) 잠자는 달 — 오른쪽 위에서 눈 감고 "z z" (§11).
-  // 낙하물 별(star)과 헷갈리지 않게: 달은 항상 같은 자리에 있는 큰 초승달.
-  // 오른쪽으로 열린 "C" 모양을 가로줄로 직접 쌓는다 — 원판 두 장을 겹쳐
-  // 파내는 방식은 계단 모서리 조각이 남아 지저분하다.
+  // 5) 잠자는 달 — 날짜에 따라 진짜 위상(신월→보름→그믐), 위치(반구)에 따라
+  // 밝은 쪽이 뒤집힌다 (moon.ts). 잠자는 눈은 moon.ts가, "z z"는 여기가 맡는다.
   // 달 근처(stage 2)에서는 그리지 않는다 — 우리가 그 달의 옆에 도착했으니까.
   // decorMoon=false면(궤도 모니터 줌아웃) 진짜 공전 달을 따로 그리므로 생략.
   if (stage !== 2 && decorMoon) {
-    const mx = w - 64;
-    const my = 96;
-    ctx.save();
-    ctx.translate(mx, my);
-    ctx.scale(6, 6); // 가상 픽셀 1칸 = 6px, 반지름 4칸 = 24px
-    ctx.fillStyle = COLORS.accent;
-    ctx.fillRect(-2, -4, 4, 1); // 위 뿔
-    ctx.fillRect(-3, -3, 3, 1);
-    ctx.fillRect(-4, -2, 2, 4); // 왼쪽 두꺼운 몸통
-    ctx.fillRect(-3, 2, 3, 1);
-    ctx.fillRect(-2, 3, 4, 1); // 아래 뿔
-    // 감은 눈 — 자는 중이라는 표시 (두꺼운 몸통 위에)
-    ctx.fillStyle = COLORS.space;
-    ctx.fillRect(-3.5, -0.5, 1.5, 0.5);
-    ctx.restore();
+    const phase = getMoonPhase(Date.now());
+    drawMoon(ctx, moonX, moonY, 6, phase.illum, phase.waxing, moonSouth, t);
 
     // "z z" 잠꼬대 — 숨 쉬듯 흐리게 떠올랐다 가라앉는다
     ctx.save();
@@ -183,8 +175,8 @@ export function drawBackdrop(
     ctx.font = `10px ${CANVAS_FONT}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    ctx.fillText("z", mx + 20, my - 32 + Math.sin(t * 1.3) * 3);
-    ctx.fillText("z", mx + 32, my - 44 + Math.sin(t * 1.3 + 0.9) * 3);
+    ctx.fillText("z", moonX + 20, moonY - 32 + Math.sin(t * 1.3) * 3);
+    ctx.fillText("z", moonX + 32, moonY - 44 + Math.sin(t * 1.3 + 0.9) * 3);
     ctx.restore();
   }
 }

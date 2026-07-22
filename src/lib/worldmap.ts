@@ -8,7 +8,7 @@
 // 픽셀 지구"가 목적이라는 §11 정신 그대로.
 // ============================================================================
 
-import { CANVAS_FONT, COLORS } from "./constants";
+import { CANVAS_FONT, COLORS, type MascotVariantId } from "./constants";
 import { drawMascot } from "./mascot";
 import type { OrbitState } from "./orbit";
 
@@ -89,6 +89,7 @@ export function drawWorldMap(
   state: OrbitState,
   track: Array<{ latDeg: number; lonDeg: number }>,
   atMs: number,
+  variant: MascotVariantId = "mint",
 ): void {
   const cw = w / COLS;
   const ch = h / ROWS;
@@ -157,12 +158,15 @@ export function drawWorldMap(
   ctx.fillRect(Math.round(x) - 9, Math.round(y) - 1, 2, 2);
   ctx.fillRect(Math.round(x) + 7, Math.round(y) - 1, 2, 2);
   ctx.restore();
-  drawMascot(ctx, Math.round(x), Math.round(y - 1), mr, 1, {
-    gazeX: 0,
-    gazeY: 0,
-    blink: false,
-    mouthOpen: 0,
-  });
+  drawMascot(
+    ctx,
+    Math.round(x),
+    Math.round(y - 1),
+    mr,
+    1,
+    { gazeX: 0, gazeY: 0, blink: false, mouthOpen: 0 },
+    variant,
+  );
 
   // 좌상단 라벨
   ctx.save();
