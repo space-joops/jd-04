@@ -25,6 +25,7 @@ import {
   type TotalRow,
 } from "@/lib/leaderboard";
 import type { StoredPet } from "@/lib/storage";
+import { useT } from "../i18n-provider";
 
 type Props = {
   score: number;
@@ -35,6 +36,7 @@ type Props = {
 type Tab = "run" | "total";
 
 export function Leaderboard({ score, eaten, pet }: Props) {
+  const { t } = useT();
   const [tab, setTab] = useState<Tab>("run");
   // undefined = 불러오는 중, null = 실패(목록 숨김), 배열 = 표시
   const [runs, setRuns] = useState<RunRow[] | null | undefined>(undefined);
@@ -97,8 +99,8 @@ export function Leaderboard({ score, eaten, pet }: Props) {
     <div className="mt-4 flex w-full max-w-xs flex-col items-center gap-3 text-center">
       {/* 탭 — 단판/누적 전환. 버튼만 터치를 가진다 (나머지는 캔버스로 통과) */}
       <div className="pointer-events-auto font-pixel-ko flex gap-2 text-xs">
-        {tabButton("run", "단판 TOP 5")}
-        {tabButton("total", "누적 TOP 5")}
+        {tabButton("run", t("leaderboard.runTop5"))}
+        {tabButton("total", t("leaderboard.totalTop5"))}
       </div>
 
       {active === undefined && (
@@ -107,7 +109,7 @@ export function Leaderboard({ score, eaten, pet }: Props) {
       {active !== undefined &&
         active !== null &&
         (active.length === 0 ? (
-          <p className="font-pixel-ko text-xs text-gray-400">아직 기록이 없어요</p>
+          <p className="font-pixel-ko text-xs text-gray-400">{t("leaderboard.empty")}</p>
         ) : (
           <ol className="font-pixel-ko w-full text-xs leading-loose">
             {tab === "run"
@@ -116,20 +118,20 @@ export function Leaderboard({ score, eaten, pet }: Props) {
                   row(i, r.name, r.id === pet.id, String(r.score)),
                 )
               : (totals as TotalRow[]).map((r, i) =>
-                  row(i, r.name, r.id === pet.id, `${r.total_eaten}개`),
+                  row(i, r.name, r.id === pet.id, t("bag.unit", { n: r.total_eaten })),
                 )}
           </ol>
         ))}
 
       {sendError === "fail" && (
         <p className="font-pixel-ko text-xs" style={{ color: COLORS.danger }}>
-          기록 전송 실패 — 다음 판에 다시 시도해요
+          {t("leaderboard.sendFail")}
         </p>
       )}
       {sendError === "taken" && (
         // 오프라인으로 등록한 펫의 이름이 그새 선점된 희귀 사례 (§8-1)
         <p className="font-pixel-ko text-xs" style={{ color: COLORS.danger }}>
-          이름이 이미 선점돼 기록을 못 보냈어요
+          {t("leaderboard.nameTaken")}
         </p>
       )}
     </div>

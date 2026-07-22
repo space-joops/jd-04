@@ -10,10 +10,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { COLORS } from "@/lib/constants";
 import { BagGrid } from "./bag-grid";
+import { T } from "../i18n-provider";
 
 export const metadata: Metadata = {
   title: "SPACE JOOPS · INVENTORY",
-  description: "내 펫이 지금까지 수거한 우주쓰레기 도감",
+  description: "The space-junk field guide your pet has collected",
 };
 
 export default function BagPage() {
@@ -33,7 +34,7 @@ export default function BagPage() {
           🎒 INVENTORY
         </h1>
         <p className="font-pixel-ko text-sm text-gray-400">
-          내 펫이 지금까지 수거한 것들 — 이 기기에만 기록돼요
+          <T k="bag.subtitle" />
         </p>
       </header>
 

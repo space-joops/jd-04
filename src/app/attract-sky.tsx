@@ -24,7 +24,8 @@ import {
   stepJunk,
 } from "@/lib/debris";
 import { type Popup, drawPopup, makePopup, stepPopup } from "@/lib/effects";
-import { EAT_WORDS } from "@/lib/constants";
+import { getDict, resolveLang, t as translate } from "@/lib/i18n";
+import { loadSettings } from "@/lib/storage";
 
 /** 어트랙트 모드 튜닝 — 타이틀 데모(§9)와 같은 값: 느긋하게, 가시 없이. */
 const DEMO = {
@@ -45,6 +46,12 @@ export function AttractSky() {
     if (!canvas || !ctx) return;
 
     let { w, h } = fitCanvas(canvas);
+
+    // 먹기 팝업("YUM!" 등)을 현재 언어로 (§2 i18n). 마운트 시 사전 스냅샷.
+    const eatWords = translate(
+      getDict(resolveLang(loadSettings().language)),
+      "fx.eat",
+    ).split("|");
 
     let junks: Junk[] = [];
     const popups: Popup[] = [];
@@ -130,11 +137,7 @@ export function AttractSky() {
           if (d < DEMO.mascotR + j.size * 0.65) {
             j.eatT = 0;
             popups.push(
-              makePopup(
-                EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)],
-                j.x,
-                j.y,
-              ),
+              makePopup(eatWords[Math.floor(Math.random() * eatWords.length)], j.x, j.y),
             );
           }
         }

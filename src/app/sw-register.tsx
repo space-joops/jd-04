@@ -16,8 +16,10 @@
 import { useEffect, useRef, useState } from "react";
 import { COLORS } from "@/lib/constants";
 import pkg from "../../package.json";
+import { useT } from "./i18n-provider";
 
 export function SwRegister() {
+  const { t } = useT();
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
   const clickedRef = useRef(false); // 사용자가 업데이트를 눌렀는가
 
@@ -82,7 +84,7 @@ export function SwRegister() {
         marginBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      🚀 새 버전 도착! 탭해서 업데이트
+      {t("sw.update")}
     </button>
   );
 }

@@ -9,26 +9,7 @@
 
 import { ImageResponse } from "next/og";
 import { COLORS } from "@/lib/constants";
-
-/** [x, y, w, h, color] — drawMascot(§6-3)의 fillRect 좌표를 그대로 옮긴 것. */
-const CELLS: Array<[number, number, number, number, string]> = [
-  // 안테나 (몸보다 먼저 = 아래 레이어)
-  [-0.5, -5.5, 1, 2, COLORS.mascot],
-  [-1, -7, 2, 1.5, COLORS.accent],
-  // 몸통 슬라임 실루엣
-  [-2, -4, 4, 1, COLORS.mascot],
-  [-3, -3, 6, 1, COLORS.mascot],
-  [-4, -2, 8, 5, COLORS.mascot],
-  [-3, 3, 2, 1, COLORS.mascot],
-  [1, 3, 2, 1, COLORS.mascot],
-  // 볼터치 — 캔버스에선 알파 0.6, 여기선 8자리 hex로 같은 느낌
-  [-3.5, 0, 1, 1, "#ff8fab99"],
-  [2.5, 0, 1, 1, "#ff8fab99"],
-  // 눈·입
-  [-2, -1, 1, 1, COLORS.space],
-  [1, -1, 1, 1, COLORS.space],
-  [-1, 1, 2, 2, COLORS.space],
-];
+import { MASCOT_CELLS as CELLS } from "@/lib/mascot-cells";
 
 /**
  * size×size PNG 아이콘을 만든다.

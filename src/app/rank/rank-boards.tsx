@@ -18,11 +18,13 @@ import {
   type TotalRow,
 } from "@/lib/leaderboard";
 import { type StoredPet, loadPet } from "@/lib/storage";
+import { useT } from "../i18n-provider";
 
 /** 전용 페이지는 게임오버 요약(5줄)보다 넉넉하게. */
 const PAGE_LIMIT = 10;
 
 export function RankBoards() {
+  const { t } = useT();
   // undefined = 불러오는 중, null = 실패
   const [runs, setRuns] = useState<RunRow[] | null | undefined>(undefined);
   const [totals, setTotals] = useState<TotalRow[] | null | undefined>(undefined);
@@ -48,9 +50,7 @@ export function RankBoards() {
 
   if (!leaderboardEnabled) {
     return (
-      <p className="font-pixel-ko text-sm text-gray-400">
-        오프라인 모드 — 온라인 순위는 준비 중이에요
-      </p>
+      <p className="font-pixel-ko text-sm text-gray-400">{t("rank.offline")}</p>
     );
   }
 
@@ -69,11 +69,9 @@ export function RankBoards() {
           LOADING...
         </p>
       ) : rows === null ? (
-        <p className="font-pixel-ko text-xs text-gray-400">
-          순위를 불러오지 못했어요
-        </p>
+        <p className="font-pixel-ko text-xs text-gray-400">{t("rank.loadFail")}</p>
       ) : rows.length === 0 ? (
-        <p className="font-pixel-ko text-xs text-gray-400">아직 기록이 없어요</p>
+        <p className="font-pixel-ko text-xs text-gray-400">{t("leaderboard.empty")}</p>
       ) : (
         <ol className="font-pixel-ko border-2 border-white/15 bg-black/30 px-4 py-3 text-sm leading-loose">
           {rows.map((r, i) => (
@@ -103,16 +101,16 @@ export function RankBoards() {
   const totalRows =
     totals == null
       ? totals
-      : totals.map((t) => ({
-          name: t.name,
-          value: `${t.total_eaten}개`,
-          mine: pet !== null && t.id === pet.id,
+      : totals.map((r) => ({
+          name: r.name,
+          value: t("bag.unit", { n: r.total_eaten }),
+          mine: pet !== null && r.id === pet.id,
         }));
 
   return (
     <div className="flex w-full flex-col items-center gap-8">
-      {board("단판 TOP 10", "한 판의 기적 — 게임 한 판 최고 점수", runRows)}
-      {board("누적 TOP 10", "부지런한 청소부 — 통산 수거한 우주쓰레기", totalRows)}
+      {board(t("rank.runTitle"), t("rank.runSub"), runRows)}
+      {board(t("rank.totalTitle"), t("rank.totalSub"), totalRows)}
     </div>
   );
 }

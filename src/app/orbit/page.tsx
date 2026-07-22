@@ -10,6 +10,7 @@ import Link from "next/link";
 import { COLORS } from "@/lib/constants";
 import { OrbitView } from "./orbit-view";
 import { OrbitExplainer } from "./orbit-explainer";
+import { T } from "../i18n-provider";
 
 export const metadata: Metadata = {
   title: "SPACE JOOPS · ORBIT MONITOR",
@@ -33,12 +34,11 @@ export default function OrbitPage() {
           🛰️ ORBIT MONITOR
         </h1>
         <p className="font-pixel-ko text-sm text-gray-300">
-          내 펫이 지금 지구 어디 위를 날고 있는지 실시간으로 보여줘요.
+          <T k="orbit.subtitle" />
         </p>
         <div className="flex flex-col items-center gap-1">
           <p className="font-pixel-ko text-xs text-gray-400">
-            이 화면은 전부 <b style={{ color: COLORS.mascot }}>진짜 궤도역학</b>으로
-            실시간 계산돼요.
+            <T k="orbit.realtimeNote" />
           </p>
           <OrbitExplainer />
         </div>

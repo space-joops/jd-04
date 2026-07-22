@@ -14,6 +14,7 @@ import { useState } from "react";
 import { COLORS } from "@/lib/constants";
 import { registerPet, sanitizePetName } from "@/lib/leaderboard";
 import { type StoredPet, newPetId } from "@/lib/storage";
+import { useT } from "../i18n-provider";
 
 type GateState = "idle" | "checking" | "taken";
 
@@ -22,6 +23,7 @@ export function PetNameGate({
 }: {
   onDone: (pet: StoredPet) => void;
 }) {
+  const { t } = useT();
   const [name, setName] = useState("");
   const [state, setState] = useState<GateState>("idle");
   const clean = sanitizePetName(name);
@@ -52,12 +54,10 @@ export function PetNameGate({
         className="font-pixel-ko text-3xl text-white md:text-4xl"
         style={{ textShadow: "3px 3px 0 #000" }}
       >
-        펫 이름을 지어줘!
+        {t("petname.title")}
       </h1>
-      <p className="font-pixel-ko text-sm leading-relaxed text-gray-300">
-        궤도 청소 기록은 이 이름으로 경쟁해요.
-        <br />
-        (10자까지 · 세상에 하나뿐인 이름이어야 해요)
+      <p className="font-pixel-ko whitespace-pre-line text-sm leading-relaxed text-gray-300">
+        {t("petname.sub")}
       </p>
       <input
         value={name}
@@ -69,9 +69,9 @@ export function PetNameGate({
           if (e.key === "Enter") void submit();
         }}
         maxLength={10}
-        placeholder="냠냠이"
+        placeholder={t("petname.placeholder")}
         autoFocus
-        aria-label="펫 이름"
+        aria-label={t("petname.aria")}
         className="font-pixel-ko w-64 border-2 bg-black/40 px-3 py-2 text-center text-xl text-white outline-none placeholder:text-gray-600 focus-visible:border-white"
         style={{
           borderColor: state === "taken" ? COLORS.danger : "rgba(255,255,255,0.5)",
@@ -79,7 +79,7 @@ export function PetNameGate({
       />
       {state === "taken" && (
         <p className="font-pixel-ko text-sm" style={{ color: COLORS.danger }}>
-          앗, 이미 있는 이름이야! 다른 이름을 지어줘
+          {t("petname.taken")}
         </p>
       )}
       <button

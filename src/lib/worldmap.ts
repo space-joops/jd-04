@@ -178,3 +178,62 @@ export function drawWorldMap(
   ctx.fillText("EQUIRECTANGULAR", 4, 4);
   ctx.restore();
 }
+
+/**
+ * 위치 선택용 간이 세계지도 (§8-4 설정). 궤도 상태 없이 육지 + 격자 + 고른
+ * 위치 마커(노란 십자)만 그린다. 클릭→위경도 역변환은 호출부에서:
+ *   lon = (x/w)*360 - 180,  lat = 90 - (y/h)*180.
+ */
+export function drawLocatorMap(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  markLat: number | null,
+  markLon: number | null,
+): void {
+  const cw = w / COLS;
+  const ch = h / ROWS;
+
+  ctx.fillStyle = COLORS.space;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = COLORS.land;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (LANDMASK[r * COLS + c]) {
+        ctx.fillRect(Math.floor(c * cw), Math.floor(r * ch), Math.ceil(cw), Math.ceil(ch));
+      }
+    }
+  }
+
+  // 경위도 격자 — 아주 연하게
+  ctx.save();
+  ctx.globalAlpha *= 0.12;
+  ctx.strokeStyle = COLORS.ink;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let lon = -120; lon < 180; lon += 60) {
+    const x = ((lon + 180) / 360) * w;
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+  }
+  for (let lat = -60; lat < 90; lat += 30) {
+    const y = ((90 - lat) / 180) * h;
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // 고른 위치 마커 — 노란 십자 + 점
+  if (markLat !== null && markLon !== null) {
+    const { x, y } = lonLatToXY(markLon, markLat, w, h);
+    const rx = Math.round(x);
+    const ry = Math.round(y);
+    ctx.fillStyle = COLORS.accent;
+    ctx.fillRect(rx - 6, ry - 1, 13, 2);
+    ctx.fillRect(rx - 1, ry - 6, 2, 13);
+    ctx.fillStyle = COLORS.mascot;
+    ctx.fillRect(rx - 2, ry - 2, 4, 4);
+  }
+}

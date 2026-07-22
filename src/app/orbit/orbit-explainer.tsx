@@ -13,11 +13,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { COLORS } from "@/lib/constants";
 import { drawGlobeDisc } from "@/lib/globe";
 import { drawMascot } from "@/lib/mascot";
+import type { DictKey } from "@/lib/i18n";
+import { useT } from "../i18n-provider";
 
-/** 설명 3장 — 각 장의 그림을 그리는 함수 + 제목 + 본문. */
+/** 설명 3장 — 그림 함수 + 제목/본문 사전 키(§2 i18n). */
 type Panel = {
-  title: string;
-  body: string;
+  titleKey: DictKey;
+  bodyKey: DictKey;
   draw: (ctx: CanvasRenderingContext2D, s: number) => void;
 };
 
@@ -36,8 +38,8 @@ function earthAt(ctx: CanvasRenderingContext2D, s: number, r: number) {
 
 const PANELS: Panel[] = [
   {
-    title: "왜 안 떨어져?",
-    body: "사실 줍스는 계속 떨어지고 있어! 그런데 옆으로 엄청 빠르게 날아서, 떨어지는 만큼 지구가 둥글게 휘어 자꾸 빗나가. 그래서 영원히 지구를 뱅뱅 돌지.",
+    titleKey: "orbit.explainer.title1",
+    bodyKey: "orbit.explainer.body1",
     draw: (ctx, s) => {
       const r = s * 0.42;
       earthAt(ctx, s, r);
@@ -65,8 +67,8 @@ const PANELS: Panel[] = [
     },
   },
   {
-    title: "높으면 느긋~",
-    body: "높이 올라갈수록 천천히 돌고, 한 바퀴 도는 시간도 길어져. 줍스는 낮은 저궤도라 약 90분이면 지구를 한 바퀴 — 하루에도 열여섯 바퀴나 돌아!",
+    titleKey: "orbit.explainer.title2",
+    bodyKey: "orbit.explainer.body2",
     draw: (ctx, s) => {
       const r = s * 0.3;
       earthAt(ctx, s, r);
@@ -97,8 +99,8 @@ const PANELS: Panel[] = [
     },
   },
   {
-    title: "지구가 돌잖아!",
-    body: "줍스가 한 바퀴 도는 동안 지구도 슬쩍 자전해. 그래서 지날 때마다 발밑이 조금씩 서쪽으로 밀려서, 세계지도에 그 유명한 물결무늬 궤적이 그려지는 거야.",
+    titleKey: "orbit.explainer.title3",
+    bodyKey: "orbit.explainer.body3",
     draw: (ctx, s) => {
       const r = s * 0.4;
       earthAt(ctx, s, r);
@@ -135,6 +137,7 @@ function PanelSprite({ draw }: { draw: Panel["draw"] }) {
 }
 
 export function OrbitExplainer() {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
 
@@ -154,13 +157,13 @@ export function OrbitExplainer() {
         className="font-pixel-ko text-sm underline underline-offset-4 transition-colors hover:opacity-80 focus-visible:opacity-80"
         style={{ color: COLORS.accent }}
       >
-        👉 궤도역학이 뭐야?
+        {t("orbit.explainerLink")}
       </button>
 
       {open && (
         <div
           role="dialog"
-          aria-label="궤도역학 쉬운 설명"
+          aria-label={t("orbit.explainer.intro")}
           onClick={close}
           className="fixed inset-0 z-50 flex cursor-pointer flex-col overflow-y-auto"
           style={{ backgroundColor: COLORS.space }}
@@ -176,14 +179,12 @@ export function OrbitExplainer() {
               ORBITAL MECHANICS
             </h2>
             <p className="font-pixel-ko text-center text-sm text-gray-300">
-              줍스가 어떻게 떨어지지도 날아가지도 않고 지구를 뱅뱅 도는지,
-              <br />
-              세 컷으로 알려줄게!
+              {t("orbit.explainer.intro")}
             </p>
 
             {PANELS.map((panel) => (
               <div
-                key={panel.title}
+                key={panel.titleKey}
                 className="flex w-full items-center gap-4 border-2 border-white/15 bg-black/30 px-4 py-4 text-left"
               >
                 <PanelSprite draw={panel.draw} />
@@ -192,10 +193,10 @@ export function OrbitExplainer() {
                     className="font-pixel-ko mb-1 text-base"
                     style={{ color: COLORS.mascot }}
                   >
-                    {panel.title}
+                    {t(panel.titleKey)}
                   </p>
                   <p className="font-pixel-ko text-sm leading-relaxed text-gray-200">
-                    {panel.body}
+                    {t(panel.bodyKey)}
                   </p>
                 </div>
               </div>

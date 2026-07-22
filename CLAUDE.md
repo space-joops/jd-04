@@ -42,6 +42,16 @@
 - 인게임 카피는 **레트로 아케이드풍 영어** ("YUM!", "GAME OVER", "TAP TO START") —
   픽셀 폰트 Press Start 2P에 한글 글리프가 없기 때문 (§11). 짧고 경쾌하게, 죽음/폭발
   어휘는 여전히 금지. 코드 주석·문서·메타데이터는 계속 한글 구어체.
+- **다국어(i18n) — HTML UI만 10개 언어, 캔버스는 영어 고정.** UI 텍스트(메뉴·설정·
+  툴팁·버튼·스토리)는 사전(`src/lib/i18n/`)으로 10개 언어(en 기본·ko·ja·zh·es·fr·
+  de·pt·ar·sw) 번역한다. 언어는 설정에서 고르며(기본 "auto"=브라우저 언어), 아랍어는
+  RTL(`<html dir="rtl">`). **브랜드·HUD 아케이드 간판(SPACE JOOPS·GAME OVER·SCORE·
+  TAP TO START·telemetry 라벨 LAT/LON 등)은 영어 고정** — 오락실 카피는 만국 공통이고
+  Press Start 2P가 라틴 전용이라 픽셀 톤이 산다. 단, **캐릭터 반응 팝업(YUM!·OUCH!·
+  FUEL UP!·COMBO·GEO ORBIT! 등, `fx.*` 키)은 언어 설정을 따라 번역**된다 — 캔버스
+  `fillText`가 CJK·아랍은 시스템 폰트로 폴백해 그린다(픽셀 톤은 en/ko만, HTML UI와 같은
+  절충). 사전 키의 정본은 `dicts/en.ts`이고, `type Dict = Record<키, string>`이라
+  번역이 빠지면 컴파일이 막힌다.
 
 ## 3. 핵심 게임 루프
 
@@ -307,10 +317,16 @@ uuid를 씨앗 삼아 궤도 요소(고도·경사각·승교점 경도·발사 
   라벤더 — 색뿐 아니라 **안테나·눈·입 모양**까지 다르다(`drawMascot`의 `variant`
   분기, §6-3). 고른 캐릭터는 게임 마스코트·궤도 지구본/세계지도 마커·설정 미리보기에
   모두 반영된다. **앱 아이콘(`pwa-icon.tsx`)은 브랜드 고정이라 민초 그대로.**
-- **기지국 위치**(위/경도): `navigator.geolocation` "현재 위치" 버튼 또는 수동 입력.
-  달 위상의 반구(§11)와 궤도 모니터의 "기지국 태양시"(§8-3)에 쓰인다. 미설정이면 null.
-- **시간 표시 형식**: UTC / 기기 현지 / 기지국 태양시(위치 필요). 궤도 시계에 반영.
-- 전부 실패 허용(§12) — env·권한 없이도, 설정이 없어도 기본값(민초·UTC)으로 완전 동작.
+- **언어**(§2 i18n): 10개 언어 중 선택 + "자동"(브라우저 언어). 바꾸면 화면이 즉시
+  그 언어로(아랍어는 RTL). 저장은 `sjs-settings.language`, 실제 적용은 `I18nProvider`.
+- **기지국 위치**(위/경도): 네 가지로 고른다 — `navigator.geolocation` "현재 위치"
+  버튼 / 수동 위경도 입력 / **2D 세계지도 탭해서 찍기**(`location-picker.tsx`,
+  `worldmap.ts`의 `drawLocatorMap` 재사용) / **도시 검색**(`cities.ts`의 주요 도시
+  목록). 달 위상의 반구(§11)와 궤도 모니터의 "기지국 태양시"(§8-3)에 쓰인다.
+- **시간 표시 형식**: UTC / 기기 현지 / 기지국 태양시(위치 필요). 각 형식의 **뜻 설명**을
+  아래에 한 줄로 보여준다(기지국 태양시 = 경도 15°=1시간으로 UTC를 민 평균 태양시).
+  궤도 시계에 반영.
+- 전부 실패 허용(§12) — env·권한 없이도, 설정이 없어도 기본값(자동 언어·민초·UTC)으로 완전 동작.
 
 ## 9. 스폰 · 난이도 곡선
 
@@ -443,6 +459,14 @@ uuid를 씨앗 삼아 궤도 요소(고도·경사각·승교점 경도·발사 
   - `sw.js`의 `VERSION` 상수는 캐시 저장소 이름 — 캐시 구조를 바꾸거나
     대청소가 필요할 때만 올린다 (activate에서 옛 캐시 전부 삭제).
 - **버전 표기**: `package.json`의 version을 빌드 타임에 읽어 랜딩 푸터에 `v{버전}` 상시 표시.
+- **OG 소셜 프리뷰**(`opengraph-image.tsx`·`twitter-image.tsx`): 링크를 펼칠 때 보이는
+  1200×630 미리보기를 `next/og` ImageResponse로 코드 생성(에셋 0개 §11) — 아이콘과 같은
+  마스코트 도트(`mascot-cells.ts`, pwa-icon과 공유)를 크게 얹는다. **기본은 영어**(크롤러가
+  읽는 정본). `layout.tsx`에 `metadataBase`(env `NEXT_PUBLIC_SITE_URL`/`VERCEL_URL`)와
+  `openGraph`·`twitter` 추가. 언어별 동적 OG는 `/og?lang=..`(`og/route.tsx`)가 같은
+  제너레이터로 만든다(§2). 픽셀 폰트는 싣지 않고(빌드 안정성 §12) 마스코트 도트가 정체성 담당.
+- **공유하기**(`share-button.tsx`): 랜딩의 버튼 — `navigator.share`가 있으면 모바일 OS 공유
+  시트, 없으면 링크 클립보드 복사 폴백. 공유 문구는 현재 언어(§2). 취소·미지원은 조용히(§12).
 - 접근성: 장식 요소에 `aria-hidden`, 포커스 링(focus-visible) 유지, HTML 텍스트로 정보 전달.
 - 이 저장소는 **프론트엔드 초급자 학습용**이다: 모든 코드에 "왜"를 설명하는 꼼꼼한 한글 주석.
   코드를 바꾸면 관련 주석·이 문서도 함께 갱신. 문법 해설은 `docs/` 학습 문서
@@ -458,8 +482,13 @@ src/
 │   ├── best-score.tsx     최고 기록 표시 (useSyncExternalStore + storage 이벤트)
 │   ├── story-intro.tsx    첫 방문 스토리 인트로 (전체화면 크롤 1회 + 다시보기)
 │   ├── install-button.tsx "앱 설치" 버튼 (beforeinstallprompt, 환경별 안내)
+│   ├── share-button.tsx   "공유하기" 버튼 (navigator.share + 클립보드 폴백, §13)
+│   ├── i18n-provider.tsx  언어 컨텍스트 useT()·<T> + html lang/dir (§2 i18n)
 │   ├── manifest.ts        웹 앱 매니페스트 (PWA 설치, §13)
-│   ├── pwa-icon.tsx       앱 아이콘 코드 생성 (ImageResponse — mascot.ts 도트의 거울)
+│   ├── pwa-icon.tsx       앱 아이콘 코드 생성 (ImageResponse — mascot-cells 재사용)
+│   ├── opengraph-image.tsx 소셜 프리뷰 OG 이미지 (영어 기본, ImageResponse, §13)
+│   ├── twitter-image.tsx  트위터 카드 (opengraph-image 재사용)
+│   ├── og/route.tsx       언어별 동적 OG (/og?lang=.., §13)
 │   ├── icon-192.png/      └ 매니페스트 아이콘 라우트 (192px)
 │   ├── icon-512.png/      └ 매니페스트 아이콘 라우트 (512px + 마스커블 겸용)
 │   ├── apple-icon.tsx     iOS 홈 화면 아이콘 (자동 링크)
@@ -476,7 +505,8 @@ src/
 │   │   └── orbit-explainer.tsx "궤도역학이 뭐야?" 3컷 설명 모달 (미니 픽셀 그림)
 │   ├── settings/
 │   │   ├── page.tsx       "/settings" 설정 페이지 껍데기 (§8-4)
-│   │   └── settings-form.tsx 캐릭터·위치·시간형식 폼 (즉시 저장, 미니 캔버스 미리보기)
+│   │   ├── settings-form.tsx 언어·캐릭터·위치·시간형식 폼 (즉시 저장, 미리보기)
+│   │   └── location-picker.tsx 지도 찍기 + 도시 검색 위치 선택 (§8-4)
 │   ├── layout.tsx         루트 레이아웃 (전역 메타, themeColor, appleWebApp, SwRegister)
 │   ├── globals.css        Tailwind + 전역 스타일 (픽셀 폰트 2종, 우주색 배경, 선택 방지)
 │   └── play/
@@ -493,8 +523,13 @@ src/
     ├── backdrop.ts        우주 배경 (격자·별·위상 달, surface·decorMoon·위치 옵션)
     ├── orbit.ts           펫 uuid 기반 결정론적 궤도역학 (케플러 원궤도 근사·현지 태양시, §8-3)
     ├── globe.ts           궤도 모니터 지구본 씬 (직교 투영 + drawMascot 마커, §8-3)
-    ├── worldmap.ts        2D 세계지도 (equirectangular·대륙 얼룩·지상궤적, §8-3)
+    ├── worldmap.ts        2D 세계지도 (equirectangular·대륙 얼룩·지상궤적·drawLocatorMap, §8-3·§8-4)
     ├── solar.ts           줌아웃 씬 (공전하는 달 + 태양계, §8-3)
+    ├── cities.ts          도시 검색용 주요 도시 위경도 목록 (§8-4)
+    ├── mascot-cells.ts    마스코트 도트 좌표 (pwa-icon·OG ImageResponse 공유, §13)
+    ├── og.tsx             OG 이미지 생성기 (ImageResponse, §13)
+    ├── i18n/index.ts      다국어 기반 (Lang 10종·detect·getDict·t, §2)
+    ├── i18n/dicts/*.ts    언어별 사전 10개 (en 정본 + 9개 번역, §2)
     ├── effects.ts         팝업 글자 + 스파크 입자 (age/life 수명 패턴)
     ├── sound.ts           Web Audio 신시사이저
     ├── haptics.ts         진동 피드백 (미지원 환경 조용히 생략)

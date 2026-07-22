@@ -14,8 +14,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/lib/constants";
 import { hasSeenIntro, markIntroSeen } from "@/lib/storage";
+import { useT } from "./i18n-provider";
 
 export function StoryIntro() {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
 
   // 첫 방문 판단은 하이드레이션 이후에 — 서버는 localStorage를 모르므로
@@ -46,61 +48,28 @@ export function StoryIntro() {
         onClick={() => setOpen(true)}
         className="font-pixel-ko text-xs text-gray-500 underline underline-offset-4 transition-colors hover:text-gray-300 focus-visible:text-gray-300"
       >
-        📜 스토리 다시보기
+        {t("story.replay")}
       </button>
 
       {open && (
         <div
           role="dialog"
-          aria-label="게임 스토리 인트로"
+          aria-label={t("story.aria")}
           onClick={close}
           className="fixed inset-0 z-50 flex cursor-pointer flex-col"
           style={{ backgroundColor: COLORS.space }}
         >
-          {/* 크롤 무대 — 화면 전체. 애니메이션이 끝까지 가면 스스로 닫힌다 */}
+          {/* 크롤 무대 — 화면 전체. 애니메이션이 끝까지 가면 스스로 닫힌다.
+              번역 문장은 언어마다 강조 위치가 달라 인라인 색을 빼고
+              whitespace-pre-line으로 \n 줄바꿈만 살린다 (§2 i18n). */}
           <div className="starwars-stage h-full w-full">
             <div
               onAnimationEnd={close}
-              className="starwars-crawl-once font-pixel-ko mx-auto flex h-full max-w-xl flex-col justify-end gap-14 px-8 text-center text-lg leading-loose text-gray-200 md:text-2xl"
+              className="starwars-crawl-once font-pixel-ko mx-auto flex h-full max-w-xl flex-col justify-end gap-14 whitespace-pre-line px-8 text-center text-lg leading-loose text-gray-200 md:text-2xl"
             >
-              <p>
-                2031년, 걱정으로만 떠돌던
-                <br />
-                케슬러 신드롬이 진짜가 됐다.
-                <br />
-                파편이 파편을 부수고,
-                <br />그 파편이 또 파편을 낳았다.
-                <br />
-                지구 저궤도는{" "}
-                <b style={{ color: COLORS.accent }}>
-                  8,000톤짜리 쓰레기 구름
-                </b>
-                이 됐다.
-              </p>
-              <p>
-                인류의 대답은
-                <br />더 큰 로켓도, 레이저도 아니었다.
-                <br />
-                <b style={{ color: COLORS.mascot }}>
-                  우주쓰레기를 먹고 자라는 생체 위성
-                </b>
-                <br />
-                지상에서 정성껏 키워,
-                <br />
-                하나씩 궤도로 올려 보냈다.
-              </p>
-              <p>
-                30년이 지난 지금.
-                <br />
-                그중에서도 제일{" "}
-                <b style={{ color: COLORS.mascot }}>입이 큰 아이</b>가
-                <br />
-                오늘도 저궤도로 출근한다.
-                <br />
-                <span className="text-2xl text-white md:text-3xl">
-                  &ldquo;우주 냠냠!&rdquo;
-                </span>
-              </p>
+              <p>{t("story.p1")}</p>
+              <p>{t("story.p2")}</p>
+              <p>{t("story.p3")}</p>
             </div>
           </div>
 

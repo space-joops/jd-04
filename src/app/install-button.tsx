@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from "react";
 import { COLORS } from "@/lib/constants";
+import { useT } from "./i18n-provider";
 
 /** beforeinstallprompt는 아직 표준 타입에 없어 필요한 만큼만 선언한다. */
 type BeforeInstallPromptEvent = Event & {
@@ -38,6 +39,7 @@ function detectEnv(): Env {
 }
 
 export function InstallButton() {
+  const { t } = useT();
   const [installEvent, setInstallEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [hidden, setHidden] = useState(false); // standalone·설치 완료 → 통째로 숨김
@@ -101,53 +103,34 @@ export function InstallButton() {
         className="font-pixel-ko border-2 px-4 py-2 text-sm transition-colors hover:bg-white/10 focus-visible:bg-white/10"
         style={{ borderColor: COLORS.mascot, color: COLORS.mascot }}
       >
-        📱 앱 설치
+        {t("install.button")}
       </button>
 
       {guideOpen && (
         <div className="font-pixel-ko flex max-w-xs flex-col gap-3 border-2 border-white/20 bg-black/60 px-4 py-3 text-xs leading-relaxed text-gray-200">
-          {env === "ios-safari" && (
-            <p>
-              사파리 아래쪽 <b style={{ color: COLORS.accent }}>공유(⬆) 버튼</b>을
-              누르고 <b style={{ color: COLORS.accent }}>&ldquo;홈 화면에 추가&rdquo;</b>를
-              선택하면 앱으로 설치돼요!
-            </p>
-          )}
+          {env === "ios-safari" && <p>{t("install.iosSafari")}</p>}
           {env === "ios-inapp" && (
             <>
-              <p>
-                지금 보고 있는 앱 안의 브라우저에서는 설치할 수 없어요.
-                <br />
-                <b style={{ color: COLORS.accent }}>사파리로 연 다음</b> 공유(⬆) →
-                &ldquo;홈 화면에 추가&rdquo;를 눌러 주세요.
-              </p>
+              <p>{t("install.iosInapp")}</p>
               <div className="flex justify-center gap-2">
                 <button
                   onClick={openInSafari}
                   className="border-2 px-3 py-1.5"
                   style={{ borderColor: COLORS.accent, color: COLORS.accent }}
                 >
-                  사파리로 열기
+                  {t("install.openSafari")}
                 </button>
                 <button
                   onClick={() => void copyUrl()}
                   className="border-2 border-white/40 px-3 py-1.5 text-white/80"
                 >
-                  {copied ? "복사됐어요!" : "링크 복사"}
+                  {copied ? t("install.copied") : t("install.copyLink")}
                 </button>
               </div>
-              <p className="text-gray-400">
-                버튼이 안 되면 복사한 주소를 사파리에 붙여넣어 주세요.
-              </p>
+              <p className="text-gray-400">{t("install.inappHint")}</p>
             </>
           )}
-          {env === "other" && (
-            <p>
-              브라우저 메뉴(⋮)에서{" "}
-              <b style={{ color: COLORS.accent }}>&ldquo;앱 설치&rdquo;</b> 또는
-              &ldquo;홈 화면에 추가&rdquo;를 선택하면 설치돼요!
-            </p>
-          )}
+          {env === "other" && <p>{t("install.other")}</p>}
         </div>
       )}
     </div>

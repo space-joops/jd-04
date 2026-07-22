@@ -9,10 +9,18 @@
 @import url("https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css");
 @import "tailwindcss";
 
-/* Tailwind 4 스타일 테마 확장 — font-pixel / font-pixel-ko 유틸리티 등록 */
+/* Tailwind 4 스타일 테마 확장 — font-pixel / font-pixel-ko 유틸리티 등록.
+   다국어(§2 i18n): Press Start 2P는 라틴만, Galmuri11은 한글만 커버한다.
+   일본어·중국어·아랍어 등은 픽셀 폰트에 글리프가 없으므로, 폴백 스택에
+   시스템 CJK·아랍·산세리프를 넉넉히 넣어 "픽셀은 못 살려도 글자는 반드시
+   보이게" 한다. en/ko는 픽셀 유지, 그 외는 시스템 폰트로 우아하게 폴백. */
 @theme {
-  --font-pixel: "Press Start 2P", monospace;
-  --font-pixel-ko: "Galmuri11", "Press Start 2P", monospace;
+  --font-cjk: "Hiragino Sans", "Yu Gothic", "Noto Sans CJK", "Microsoft YaHei",
+    "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --font-intl: "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  --font-pixel: "Press Start 2P", var(--font-intl), var(--font-cjk), monospace;
+  --font-pixel-ko: "Galmuri11", "Press Start 2P", var(--font-cjk),
+    var(--font-intl), monospace;
 }
 
 html,

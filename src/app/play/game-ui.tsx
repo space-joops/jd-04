@@ -11,6 +11,7 @@ import Link from "next/link";
 import { COLORS } from "@/lib/constants";
 import type { StoredPet } from "@/lib/storage";
 import { Leaderboard } from "./leaderboard";
+import { useT } from "../i18n-provider";
 
 export type GameUiState = {
   phase: "title" | "playing" | "over";
@@ -44,6 +45,7 @@ export function GameUi({
   onToggleSound: () => void;
   onTogglePause: () => void;
 }) {
+  const { t } = useT();
   return (
     <div
       className="pointer-events-none absolute inset-0"
@@ -81,7 +83,7 @@ export function GameUi({
           {phase === "playing" && (
             <button
               onClick={onTogglePause}
-              aria-label={paused ? "게임 재개" : "일시정지"}
+              aria-label={paused ? t("play.ariaResume") : t("play.ariaPause")}
               className="pointer-events-auto mt-1 border-2 border-white/30 px-2 py-1 text-xs text-white/60 transition-colors hover:border-white/60 hover:text-white focus-visible:border-white"
             >
               {paused ? "▶" : "⏸"}
@@ -89,7 +91,7 @@ export function GameUi({
           )}
           <button
             onClick={onToggleSound}
-            aria-label={soundOn ? "소리 끄기" : "소리 켜기"}
+            aria-label={soundOn ? t("play.ariaSoundOff") : t("play.ariaSoundOn")}
             className="pointer-events-auto mt-1 border-2 border-white/30 px-2 py-1 text-xs text-white/60 transition-colors hover:border-white/60 hover:text-white focus-visible:border-white"
           >
             {soundOn ? "🔊" : "🔇"}
@@ -98,7 +100,7 @@ export function GameUi({
               rAF·오디오를 해제한다 (§12). */}
           <Link
             href="/"
-            aria-label="처음 화면으로 돌아가기"
+            aria-label={t("play.ariaHome")}
             className="pointer-events-auto mt-1 border-2 border-white/30 px-2 py-1 text-xs text-white/60 transition-colors hover:border-white/60 hover:text-white focus-visible:border-white"
           >
             HOME
@@ -163,7 +165,7 @@ export function GameUi({
           </h2>
           {/* 이번 판의 주인공 — 펫 이름 (한글이라 font-pixel-ko, §11) */}
           <p className="font-pixel-ko text-sm text-gray-400">
-            🛰 {pet.name}의 청소 일지
+            {t("play.cleanupLog", { name: pet.name })}
           </p>
           <p className="mt-3 text-3xl md:text-4xl text-white">SCORE: {score}</p>
           <p className="text-lg md:text-xl text-gray-300">EATEN: {eaten} JUNK</p>
