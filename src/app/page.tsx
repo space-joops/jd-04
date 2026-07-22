@@ -71,7 +71,7 @@ export default function Home() {
             TAP TO START
           </Link>
           <BestScore />
-          <div className="flex gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/rank"
               className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
@@ -83,6 +83,12 @@ export default function Home() {
               className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
             >
               🎒 인벤토리
+            </Link>
+            <Link
+              href="/orbit"
+              className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+            >
+              🛰️ 궤도 모니터
             </Link>
           </div>
           <InstallButton />
