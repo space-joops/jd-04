@@ -11,10 +11,12 @@
 // update/draw 분리, ×dt 이동, 역순 순회 + splice, 정리 함수에서 해제.
 // ============================================================================
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fitCanvas } from "@/lib/canvas";
 import { drawBackdrop } from "@/lib/backdrop";
 import { drawMascot } from "@/lib/mascot";
+import { getMoonPhase, moonHitTest } from "@/lib/moon";
+import { COLORS } from "@/lib/constants";
 import {
   type Junk,
   drawJunk,
@@ -39,6 +41,8 @@ const DEMO = {
 
 export function AttractSky() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // 배경 달 클릭 이스터에그 토스트 (§11) — 게임과 같은 재미를 랜딩에도.
+  const [moonMsg, setMoonMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -47,11 +51,13 @@ export function AttractSky() {
 
     let { w, h } = fitCanvas(canvas);
 
-    // 먹기 팝업("YUM!" 등)을 현재 언어로 (§2 i18n). 마운트 시 사전 스냅샷.
-    const eatWords = translate(
-      getDict(resolveLang(loadSettings().language)),
-      "fx.eat",
-    ).split("|");
+    // 언어·위치 설정 스냅샷 (§2 i18n) — 먹기 팝업·달 이스터에그에 쓴다.
+    const settings = loadSettings();
+    const dict = getDict(resolveLang(settings.language));
+    const moonSouth = (settings.lat ?? 0) < 0;
+    const eatWords = translate(dict, "fx.eat").split("|");
+    // 배경 달 위치는 drawBackdrop 기본값과 같아야 한다 (우상단 w-64, 96).
+    const moonSpot = () => ({ x: w - 64, y: 96, r: 30 });
 
     let junks: Junk[] = [];
     const popups: Popup[] = [];
@@ -152,7 +158,9 @@ export function AttractSky() {
     };
 
     const draw = () => {
-      drawBackdrop(ctx, w, h, elapsed); // t: 별 반짝임·달 잠꼬대의 시계 (§11)
+      // 달은 설정 위치의 반구를 따른다(위상 밝은 쪽). moonSpot과 좌표 일치.
+      const m = moonSpot();
+      drawBackdrop(ctx, w, h, elapsed, 0, true, true, m.x, m.y, moonSouth);
       for (const j of junks) {
         const scale =
           j.eatT >= 0 ? Math.max(0, 1 - j.eatT / DEMO.eatAnimTime) : 1;
@@ -184,18 +192,55 @@ export function AttractSky() {
     };
     window.addEventListener("resize", onResize);
 
+    // 배경 달 클릭 이스터에그 — 캔버스는 pointer-events-none이라 window로 듣고
+    // 좌표를 캔버스 로컬로 바꿔 달 히트박스와 비교한다 (§11, 게임과 같은 재미).
+    let moonMsgTimer: ReturnType<typeof setTimeout> | null = null;
+    const onPointerDown = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const m = moonSpot();
+      if (!moonHitTest(x, y, m.x, m.y, m.r)) return;
+      const ph = getMoonPhase(Date.now());
+      setMoonMsg(
+        translate(dict, "moon.toast", {
+          emoji: ph.emoji,
+          day: ph.lunarDayApprox,
+          phase: translate(dict, ph.nameKey),
+        }),
+      );
+      if (moonMsgTimer) clearTimeout(moonMsgTimer);
+      moonMsgTimer = setTimeout(() => setMoonMsg(null), 2800);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("pointerdown", onPointerDown);
+      if (moonMsgTimer) clearTimeout(moonMsgTimer);
     };
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      // 장식일 뿐이므로 스크린리더에서 숨기고, 터치도 콘텐츠로 통과시킨다
-      aria-hidden
-      className="pointer-events-none fixed inset-0 h-full w-full"
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        // 장식일 뿐이므로 스크린리더에서 숨기고, 터치도 콘텐츠로 통과시킨다
+        aria-hidden
+        className="pointer-events-none fixed inset-0 h-full w-full"
+      />
+      {/* 달 클릭 이스터에그 토스트 — 우상단 달 근처, 한글이라 HTML로 (§11) */}
+      {moonMsg && (
+        <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-[70vw]">
+          <div
+            className="font-pixel-ko whitespace-nowrap border-2 px-3 py-2 text-xs text-white shadow-lg"
+            style={{ backgroundColor: COLORS.space, borderColor: COLORS.accent }}
+          >
+            {moonMsg}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
