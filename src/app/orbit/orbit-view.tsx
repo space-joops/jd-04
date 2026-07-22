@@ -3,10 +3,9 @@
 // ============================================================================
 // orbit-view.tsx — 궤도 모니터 화면 본체 (§8-3)
 //
-// 펫의 uuid로 만든 궤도(src/lib/orbit.ts)를 캔버스에 픽셀아트 지구본으로,
-// 수치는 HTML telemetry 카드로 보여준다. 게임 본체와 같은 원칙(§12)을
-// 따른다 — 캔버스는 매 프레임(rAF), React state는 가끔(telemetry는 초당
-// 2회로 스로틀)만 갱신한다.
+// 오케스트레이터 역할: 가상 시계(시간 가속)·줌 레벨·telemetry·툴팁을 관리하고,
+// 실제 그림은 lib(globe·worldmap·solar)에 맡긴다. 게임 본체와 같은 원칙(§12) —
+// 캔버스는 매 프레임(rAF), React state는 가끔(telemetry·시계는 스로틀)만 갱신.
 // ============================================================================
 
 import Link from "next/link";
@@ -14,94 +13,103 @@ import { useEffect, useRef, useState } from "react";
 import { fitCanvas } from "@/lib/canvas";
 import { drawBackdrop } from "@/lib/backdrop";
 import { COLORS } from "@/lib/constants";
+import { drawGlobeScene } from "@/lib/globe";
+import { drawWorldMap } from "@/lib/worldmap";
+import { drawEarthMoon, drawSolarSystem } from "@/lib/solar";
 import {
   type OrbitElements,
   type OrbitState,
   generateOrbitElements,
+  getLocalSolarTime,
   getOrbitState,
   sampleGroundTrack,
 } from "@/lib/orbit";
 import { type StoredPet, loadPet } from "@/lib/storage";
 
-/** telemetry React state 갱신 주기(초) — 캔버스는 매 프레임, 숫자는 가끔(§12). */
-const TELEMETRY_INTERVAL = 0.5;
+/** telemetry·시계 React state 갱신 주기(초) — 캔버스는 매 프레임, 숫자는 가끔. */
+const TELEMETRY_INTERVAL = 0.25;
 /** 캔버스 dt 상한(초) — 백그라운드 탭 복귀 시 순간이동 방지 (§12). */
 const MAX_DT = 0.05;
-/** 지구본 장식용 자전 속도(도/초) — 실제 자전과 무관, "보는 맛"용. */
-const GLOBE_SPIN_DEG_PER_SEC = 6;
 
-/** 대륙 조각 장식 — 지리적 정확도는 목표가 아니다 (§11, backdrop.ts와 같은 정신).
- * (lat, lon, size)를 해시로 고정해 두어 매번 같은 모양의 지구가 보이게 한다. */
-function hash(i: number): number {
-  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
-  return x - Math.floor(x);
-}
-// 전체 구를 8분면쯤으로 나눠 보이니, 어느 각도에서 봐도 앞면에 몇 개는
-// 걸리도록 넉넉히 40개를 뿌린다 (14개로는 대부분 텅 빈 파란 공만 보였다).
-const CONTINENT_PATCHES = Array.from({ length: 40 }, (_, i) => ({
-  lat: hash(i * 3 + 1) * 160 - 80,
-  lon: hash(i * 3 + 2) * 360 - 180,
-  size: 2 + hash(i * 3 + 3) * 2.5,
-}));
+/** 시간 가속 단계 (기능 4) — 1배(실시간)부터 하루/초까지. */
+const TIME_SCALES: Array<{ mult: number; label: string }> = [
+  { mult: 1, label: "1×" },
+  { mult: 60, label: "60×" },
+  { mult: 3600, label: "1h/s" },
+  { mult: 86400, label: "1d/s" },
+];
 
-function toRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
+/** 줌 레벨 (기능 6) — 0 근접 지구본 / 1 지구+달 / 2 태양계. */
+const ZOOM_LABELS = ["EARTH VIEW", "EARTH · MOON", "SOLAR SYSTEM"];
 
-/**
- * -180~180 범위로 접어 넣는다. `(deg+540)%360-180` 트릭은 JS `%`의 부호가
- * 피제수를 따라가는 특성 때문에 큰 입력에서 범위를 벗어난다(orbit.ts와
- * 같은 함정) — 먼저 `%360`으로 크기만 줄인 다음 부호에 따라 한 번만 보정.
- */
-function normalizeDeg(deg: number): number {
-  const d = deg % 360;
-  if (d > 180) return d - 360;
-  if (d < -180) return d + 360;
-  return d;
-}
+/** telemetry 각 항목의 쉬운 한글 설명 (기능 1 — 툴팁). */
+const HINTS: Record<string, string> = {
+  LAT: "위도 — 줍스가 지구의 남북 어디쯤 위에 있는지. 적도가 0°, 북쪽이 +.",
+  LON: "경도 — 동서 어디쯤. 영국 그리니치가 0°, 동쪽이 +.",
+  ALT: "고도 — 지표면에서 얼마나 높이 떠 있는지 (km).",
+  VEL: "속력 — 궤도를 도는 빠르기. 총알보다 훨씬 빨라!",
+  PERIOD: "주기 — 지구를 한 바퀴 도는 데 걸리는 시간 (분).",
+  REV: "공전수 — 발사한 뒤 지금까지 지구를 몇 바퀴 돌았는지.",
+};
 
-/** 위/경도를 화면 정면 기준 직교 투영으로 변환한다 (z<0이면 지구 반대편). */
-function projectToGlobe(
-  latDeg: number,
-  lonDeg: number,
-  spinDeg: number,
-  radius: number,
-): { x: number; y: number; z: number } {
-  const latRad = toRad(latDeg);
-  const lonRad = toRad(normalizeDeg(lonDeg + spinDeg));
-  return {
-    x: radius * Math.cos(latRad) * Math.sin(lonRad),
-    y: -radius * Math.sin(latRad),
-    z: Math.cos(latRad) * Math.cos(lonRad),
-  };
-}
-
-/** 지구본 원판 — 정수 행마다 폭을 계산해 찍는 계단식 원 (backdrop.ts 정지궤도 지구의 확장판). */
-function drawGlobeDisc(ctx: CanvasRenderingContext2D, radius: number): void {
-  ctx.fillStyle = COLORS.earth;
-  const r = Math.round(radius);
-  for (let y = -r; y <= r; y++) {
-    const halfW = Math.round(Math.sqrt(Math.max(0, r * r - y * y)));
-    if (halfW > 0) ctx.fillRect(-halfW, y, halfW * 2, 1);
-  }
-}
-
-function TelemetryCard({ label, value }: { label: string; value: string }) {
+function TelemetryCard({
+  label,
+  value,
+  open,
+  onToggle,
+}: {
+  label: string;
+  value: string;
+  open: boolean;
+  onToggle: (label: string | null) => void;
+}) {
   return (
-    <div className="flex flex-col items-start gap-1 border-2 border-white/15 bg-black/30 px-3 py-2 text-left">
-      <span className="font-pixel text-[9px] tracking-widest text-gray-400">
-        {label}
-      </span>
-      <span className="font-pixel text-sm text-white">{value}</span>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => onToggle(open ? null : label)}
+        onMouseEnter={() => onToggle(label)}
+        onMouseLeave={() => onToggle(null)}
+        aria-describedby={open ? `hint-${label}` : undefined}
+        className="flex w-full flex-col items-start gap-1 border-2 border-white/15 bg-black/30 px-3 py-2 text-left focus-visible:border-white/60"
+      >
+        <span className="font-pixel text-[9px] tracking-widest text-gray-400">
+          {label} <span className="text-gray-600">ⓘ</span>
+        </span>
+        <span className="font-pixel text-sm text-white">{value}</span>
+      </button>
+      {open && (
+        <div
+          id={`hint-${label}`}
+          role="tooltip"
+          className="font-pixel-ko absolute bottom-full left-0 z-20 mb-1 w-52 border-2 px-3 py-2 text-left text-xs leading-relaxed text-white shadow-lg"
+          style={{ backgroundColor: COLORS.space, borderColor: COLORS.accent }}
+        >
+          {HINTS[label]}
+        </div>
+      )}
     </div>
   );
 }
 
 export function OrbitView() {
-  // undefined = 아직 localStorage를 못 읽음 (서버 렌더와 첫 클라이언트 렌더 불일치 방지)
+  // undefined = 아직 localStorage를 못 읽음 (서버/첫 클라 렌더 불일치 방지)
   const [pet, setPet] = useState<StoredPet | null | undefined>(undefined);
   const [telemetry, setTelemetry] = useState<OrbitState | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [clock, setClock] = useState<{ local: string; utc: string } | null>(null);
+  const [timeScale, setTimeScale] = useState(1);
+  const [zoom, setZoom] = useState(0);
+  const [openHint, setOpenHint] = useState<string | null>(null);
+
+  const sceneRef = useRef<HTMLCanvasElement>(null);
+  const mapRef = useRef<HTMLCanvasElement>(null);
+
+  // 루프가 항상 최신 값을 읽도록 ref로 미러링 (state가 바뀌어도 effect 재시작 X)
+  const timeScaleRef = useRef(timeScale);
+  const zoomRef = useRef(zoom);
+  const resyncRef = useRef(false);
+  timeScaleRef.current = timeScale;
+  zoomRef.current = zoom;
 
   useEffect(() => {
     setPet(loadPet());
@@ -109,100 +117,88 @@ export function OrbitView() {
 
   useEffect(() => {
     if (!pet) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
+    const scene = sceneRef.current;
+    const sctx = scene?.getContext("2d");
+    const map = mapRef.current;
+    const mctx = map?.getContext("2d");
+    if (!scene || !sctx || !map || !mctx) return;
 
-    let { w, h } = fitCanvas(canvas);
+    let sSize = fitCanvas(scene);
+    let mSize = fitCanvas(map);
     const elements: OrbitElements = generateOrbitElements(pet.id);
 
     let elapsed = 0;
-    let telemetryTimer = 0;
+    let virtualMs = Date.now();
+    let telemetryTimer = TELEMETRY_INTERVAL; // 첫 프레임에 바로 한 번 갱신
     let last = performance.now();
     let raf = 0;
-
-    const draw = (
-      spinDeg: number,
-      state: OrbitState,
-      track: Array<{ latDeg: number; lonDeg: number }>,
-    ) => {
-      // 별·격자만(surface=false) — 지구본은 여기서 직접 큰 원으로 그린다
-      drawBackdrop(ctx, w, h, elapsed, 0, false);
-
-      const cx = w / 2;
-      const cy = h * 0.42;
-      const radius = Math.min(w, h) * 0.3;
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      drawGlobeDisc(ctx, radius);
-
-      // 대륙 조각 — 뒷면(z<0.12)은 건너뛴다
-      for (const patch of CONTINENT_PATCHES) {
-        const p = projectToGlobe(patch.lat, patch.lon, spinDeg, radius);
-        if (p.z < 0.12) continue;
-        const s = Math.max(1, Math.round(patch.size * p.z * 2));
-        ctx.fillStyle = COLORS.land;
-        ctx.fillRect(Math.round(p.x - s / 2), Math.round(p.y - s / 2), s, s);
-      }
-
-      // 궤도 점선 — 작은 사각 도트 나열 (§10 스파크와 같은 문법, 곡선 금지)
-      ctx.fillStyle = COLORS.accent;
-      for (const pt of track) {
-        const p = projectToGlobe(pt.latDeg, pt.lonDeg, spinDeg, radius);
-        if (p.z < 0.1) continue;
-        ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
-      }
-
-      // 펫(위성) 마커 — 앞면일 때만, 맥박 알파로 강조.
-      // 대륙 조각(COLORS.land)과 마스코트 민트가 색이 비슷해 묻히기 쉬우니
-      // 잉크색 테두리 + 노란 표적 도트 4개(십자 방향)로 눈에 띄게 한다.
-      const marker = projectToGlobe(state.latDeg, state.lonDeg, spinDeg, radius);
-      if (marker.z > 0.05) {
-        const mx = Math.round(marker.x);
-        const my = Math.round(marker.y);
-        ctx.save();
-        const pulse = 0.7 + 0.3 * Math.sin(elapsed * 4);
-        ctx.globalAlpha *= pulse;
-        ctx.fillStyle = COLORS.accent;
-        const reach = 9;
-        ctx.fillRect(mx - 1, my - reach, 2, 2);
-        ctx.fillRect(mx - 1, my + reach - 2, 2, 2);
-        ctx.fillRect(mx - reach, my - 1, 2, 2);
-        ctx.fillRect(mx + reach - 2, my - 1, 2, 2);
-        ctx.fillStyle = COLORS.ink;
-        ctx.fillRect(mx - 3, my - 3, 6, 6);
-        ctx.fillStyle = COLORS.mascot;
-        ctx.fillRect(mx - 2, my - 2, 4, 4);
-        ctx.restore();
-      }
-
-      ctx.restore();
-    };
 
     const frame = (now: number) => {
       const dt = Math.min(MAX_DT, (now - last) / 1000);
       last = now;
       elapsed += dt;
 
-      const nowMs = Date.now(); // 실제 시계 기준 — 궤도는 "지금"을 산다
-      const state = getOrbitState(elements, nowMs);
-      const track = sampleGroundTrack(elements, nowMs);
-      const spinDeg = elapsed * GLOBE_SPIN_DEG_PER_SEC;
+      // 가상 시계: 1배속이면 실제 시각에 붙고, 가속 중이면 자체 전진 (기능 4)
+      const scale = timeScaleRef.current;
+      if (scale <= 1 || resyncRef.current) {
+        virtualMs = Date.now();
+        resyncRef.current = false;
+      } else {
+        virtualMs += dt * 1000 * scale;
+      }
+
+      const state = getOrbitState(elements, virtualMs);
+      const track = sampleGroundTrack(elements, virtualMs);
+      // 카메라가 줍스를 따라간다 — 줍스 경도를 정면 중앙에 두어 지구본에서
+      // 늘 보이게 하고(기능 3), 줍스가 움직이면 그 아래로 대륙이 흘러간다.
+      const spinDeg = -state.lonDeg;
+      const z = zoomRef.current;
+
+      // --- 씬 캔버스 (줌 레벨별) ---
+      drawBackdrop(sctx, sSize.w, sSize.h, elapsed, 0, false, z === 0);
+      if (z === 0) {
+        sctx.save();
+        sctx.translate(sSize.w / 2, sSize.h * 0.5);
+        drawGlobeScene(
+          sctx,
+          Math.min(sSize.w, sSize.h) * 0.34,
+          state,
+          track,
+          spinDeg,
+          elapsed,
+        );
+        sctx.restore();
+      } else if (z === 1) {
+        drawEarthMoon(sctx, sSize.w, sSize.h, virtualMs);
+      } else {
+        drawSolarSystem(sctx, sSize.w, sSize.h, virtualMs);
+      }
+
+      // --- 2D 세계지도 캔버스 (기능 2) — 줌과 무관하게 항상 궤적을 보여준다 ---
+      drawWorldMap(mctx, mSize.w, mSize.h, state, track, virtualMs);
 
       telemetryTimer += dt;
       if (telemetryTimer >= TELEMETRY_INTERVAL) {
         telemetryTimer = 0;
         setTelemetry(state);
+        const lt = getLocalSolarTime(state.lonDeg, virtualMs);
+        const d = new Date(virtualMs);
+        const utc = `${String(d.getUTCHours()).padStart(2, "0")}:${String(
+          d.getUTCMinutes(),
+        ).padStart(2, "0")} · ${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        setClock({
+          local: `${String(lt.hours).padStart(2, "0")}:${String(lt.minutes).padStart(2, "0")}`,
+          utc,
+        });
       }
 
-      draw(spinDeg, state, track);
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
     const onResize = () => {
-      ({ w, h } = fitCanvas(canvas));
+      sSize = fitCanvas(scene);
+      mSize = fitCanvas(map);
     };
     window.addEventListener("resize", onResize);
 
@@ -239,19 +235,101 @@ export function OrbitView() {
     <div className="flex w-full flex-col items-center gap-5">
       <p className="font-pixel-ko text-lg text-white">{pet.name}</p>
 
-      <canvas
-        ref={canvasRef}
-        aria-hidden
-        className="h-72 w-full touch-none"
-      />
+      {/* 씬 캔버스 + 줌 조작·라벨 오버레이 (기능 6) */}
+      <div className="relative w-full">
+        <canvas ref={sceneRef} aria-hidden className="h-72 w-full touch-none" />
+        <span className="font-pixel absolute left-2 top-2 text-[9px] tracking-widest text-gray-400">
+          {ZOOM_LABELS[zoom]}
+        </span>
+        <div className="absolute right-2 top-2 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.max(0, z - 1))}
+            disabled={zoom === 0}
+            aria-label="줌 인"
+            className="font-pixel h-8 w-8 border-2 text-sm text-white/80 disabled:opacity-30"
+            style={{ borderColor: "rgba(255,255,255,0.4)" }}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.min(2, z + 1))}
+            disabled={zoom === 2}
+            aria-label="줌 아웃"
+            className="font-pixel h-8 w-8 border-2 text-sm text-white/80 disabled:opacity-30"
+            style={{ borderColor: "rgba(255,255,255,0.4)" }}
+          >
+            −
+          </button>
+        </div>
+      </div>
 
+      {/* 시계 + 시간 가속 (기능 4) */}
+      <div className="flex w-full flex-col items-center gap-2">
+        <div className="flex w-full items-center justify-between gap-2 border-2 border-white/15 bg-black/30 px-3 py-2">
+          <div className="text-left">
+            <span className="font-pixel text-[9px] tracking-widest text-gray-400">
+              LOCAL
+            </span>
+            <p className="font-pixel text-sm" style={{ color: COLORS.accent }}>
+              {clock ? clock.local : "--:--"}
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="font-pixel text-[9px] tracking-widest text-gray-400">
+              UTC
+            </span>
+            <p className="font-pixel text-[10px] text-white/80">
+              {clock ? clock.utc : "--:--"}
+            </p>
+          </div>
+        </div>
+        <div className="flex w-full items-center gap-1">
+          {TIME_SCALES.map((ts) => (
+            <button
+              key={ts.mult}
+              type="button"
+              onClick={() => {
+                if (ts.mult === 1) resyncRef.current = true;
+                setTimeScale(ts.mult);
+              }}
+              className="font-pixel flex-1 border-2 px-1 py-1 text-[10px] transition-colors"
+              style={
+                timeScale === ts.mult
+                  ? { borderColor: COLORS.accent, color: COLORS.accent }
+                  : { borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.6)" }
+              }
+            >
+              {ts.label}
+            </button>
+          ))}
+        </div>
+        <p className="font-pixel-ko text-[11px] text-gray-500">
+          시간을 빠르게 돌리면 줍스 이동 경로가 보여요.
+        </p>
+      </div>
+
+      {/* telemetry (툴팁) — 기능 1 */}
       <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
-        <TelemetryCard label="LAT" value={telemetry ? `${telemetry.latDeg.toFixed(2)}°` : "--"} />
-        <TelemetryCard label="LON" value={telemetry ? `${telemetry.lonDeg.toFixed(2)}°` : "--"} />
-        <TelemetryCard label="ALT" value={telemetry ? `${telemetry.altitudeKm.toFixed(0)} km` : "--"} />
-        <TelemetryCard label="VEL" value={telemetry ? `${telemetry.speedKmS.toFixed(2)} km/s` : "--"} />
-        <TelemetryCard label="PERIOD" value={telemetry ? `${(telemetry.periodSec / 60).toFixed(1)} min` : "--"} />
-        <TelemetryCard label="REV" value={telemetry ? `#${telemetry.revCount.toLocaleString()}` : "--"} />
+        {(
+          [
+            ["LAT", telemetry ? `${telemetry.latDeg.toFixed(2)}°` : "--"],
+            ["LON", telemetry ? `${telemetry.lonDeg.toFixed(2)}°` : "--"],
+            ["ALT", telemetry ? `${telemetry.altitudeKm.toFixed(0)} km` : "--"],
+            ["VEL", telemetry ? `${telemetry.speedKmS.toFixed(2)} km/s` : "--"],
+            ["PERIOD", telemetry ? `${(telemetry.periodSec / 60).toFixed(1)} min` : "--"],
+            ["REV", telemetry ? `#${telemetry.revCount.toLocaleString()}` : "--"],
+          ] as const
+        ).map(([label, value]) => (
+          <TelemetryCard
+            key={label}
+            label={label}
+            value={value}
+            open={openHint === label}
+            onToggle={setOpenHint}
+          />
+        ))}
       </div>
 
       <span
@@ -260,6 +338,18 @@ export function OrbitView() {
       >
         {telemetry ? (telemetry.sunlit ? "☀ SUNLIT" : "🌑 ECLIPSE") : "..."}
       </span>
+
+      {/* 2D 세계지도 (기능 2) */}
+      <div className="flex w-full flex-col items-center gap-2">
+        <span className="font-pixel self-start text-[9px] tracking-widest text-gray-400">
+          GROUND TRACK
+        </span>
+        <canvas
+          ref={mapRef}
+          aria-hidden
+          className="h-40 w-full touch-none border-2 border-white/10"
+        />
+      </div>
     </div>
   );
 }

@@ -41,6 +41,9 @@ export type SkyStage = 0 | 1 | 2;
  *   궤도 모니터(§8-3)처럼 화면 중앙에 직접 큰 지구본을 그리는 화면에서는
  *   false로 꺼서 배경색·격자·별·잠자는 달만 남긴다 — 지평선과 지구본이
  *   겹치면 안 되기 때문.
+ * @param decorMoon 오른쪽 위 잠자는 초승달(섹션 5)을 그릴지 여부. 기본 true.
+ *   궤도 모니터에서 줌아웃해 진짜 공전하는 달을 그릴 때(줌 레벨 ≥1)는
+ *   false로 꺼서 "가짜 달"과 겹치지 않게 한다 (§8-3 기능 6).
  */
 export function drawBackdrop(
   ctx: CanvasRenderingContext2D,
@@ -49,6 +52,7 @@ export function drawBackdrop(
   t = 0,
   stage: SkyStage = 0,
   surface = true,
+  decorMoon = true,
 ): void {
   // 1) 우주색 바탕
   ctx.fillStyle = COLORS.space;
@@ -154,7 +158,8 @@ export function drawBackdrop(
   // 오른쪽으로 열린 "C" 모양을 가로줄로 직접 쌓는다 — 원판 두 장을 겹쳐
   // 파내는 방식은 계단 모서리 조각이 남아 지저분하다.
   // 달 근처(stage 2)에서는 그리지 않는다 — 우리가 그 달의 옆에 도착했으니까.
-  if (stage !== 2) {
+  // decorMoon=false면(궤도 모니터 줌아웃) 진짜 공전 달을 따로 그리므로 생략.
+  if (stage !== 2 && decorMoon) {
     const mx = w - 64;
     const my = 96;
     ctx.save();

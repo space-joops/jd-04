@@ -189,6 +189,24 @@ export function getOrbitState(
 }
 
 /**
+ * 줍스가 지나는 지상 지점의 "현지 태양시"(기능 4). 위성추적기다운 재미 —
+ * 지금 줍스 발밑이 새벽인지 한낮인지 보여준다. 경도 15°마다 1시간이라는
+ * 아주 단순한 근사(균시차·서머타임·표준시 경계 무시)로, UTC 시각에 경도를
+ * 시간으로 환산해 더한 뒤 24로 접는다.
+ */
+export function getLocalSolarTime(
+  lonDeg: number,
+  atTimeMs: number,
+): { hours: number; minutes: number } {
+  const d = new Date(atTimeMs);
+  const utcHours = d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
+  const local = (((utcHours + lonDeg / 15) % 24) + 24) % 24;
+  const hours = Math.floor(local);
+  const minutes = Math.floor((local - hours) * 60);
+  return { hours, minutes };
+}
+
+/**
  * 현재 시각을 중심으로 앞뒤 반주기 구간의 지상궤적을 여러 점으로 샘플링한다.
  * 지구본에 점선 궤도로 투영할 원재료 — 지구 자전이 반영돼 있어 실제
  * 위성추적기처럼 S자로 휜다.
