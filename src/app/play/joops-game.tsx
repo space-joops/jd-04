@@ -19,9 +19,11 @@ import {
   HIT_WORDS,
   JUNK_COLORS,
   JUNK_FOOD_KINDS,
+  type MascotVariantId,
 } from "@/lib/constants";
 import { type SkyStage, drawBackdrop } from "@/lib/backdrop";
 import { drawMascot } from "@/lib/mascot";
+import { getMoonPhase, moonHitTest } from "@/lib/moon";
 import {
   type Junk,
   drawJunk,
@@ -47,6 +49,7 @@ import {
   loadBest,
   loadMuted,
   loadPet,
+  loadSettings,
   saveBest,
   saveMuted,
   savePet,
@@ -167,6 +170,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
     newBest: false,
     combo: 1,
     paused: false,
+    moonMsg: null,
   });
 
   // --- 소리 토글 (§10): 설정은 localStorage에 기억, 실제 음소거는 sound.ts ---
@@ -195,6 +199,18 @@ function GameCore({ pet }: { pet: StoredPet }) {
     if (!canvas || !ctx) return;
 
     let { w, h } = fitCanvas(canvas);
+
+    // ---- 사용자 설정 (§8-4): 캐릭터·위치(달 반구) — 마운트 시 1회 읽는다 ----
+    const settings = loadSettings();
+    const variant: MascotVariantId = settings.character;
+    const moonSouth = (settings.lat ?? 0) < 0; // 남반구면 달 밝은 쪽이 반대
+
+    /** 배경 달 위치·반지름 — 우상단 하트 HUD와 안 겹치게 아래로 내렸다 (task 1). */
+    const moonSpot = () => ({ x: w - 56, y: 170, r: 26 });
+
+    /** 달 클릭 이스터에그 토스트 — 잠깐 떴다 사라진다. */
+    let moonMsg: string | null = null;
+    let moonMsgTimer: ReturnType<typeof setTimeout> | null = null;
 
     // ---- 게임 상태 (전부 클로저 지역 변수 — React는 모른다) ----
     let phase: Phase = "title";
@@ -260,7 +276,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
     const pushUi = () =>
-      setUi({ phase, score, hearts, eaten, best, newBest, combo: comboMult(), paused });
+      setUi({ phase, score, hearts, eaten, best, newBest, combo: comboMult(), paused, moonMsg });
 
     /** 일시정지 토글 (§4). 멈출 때 조이스틱도 놓는다 — 재개 순간 폭주 방지. */
     const setPaused = (p: boolean) => {
@@ -650,7 +666,10 @@ function GameCore({ pet }: { pet: StoredPet }) {
       }
 
       // t: 별 반짝임·달 잠꼬대의 시계, stage: 점수 고도 (§11)
-      drawBackdrop(ctx, w, h, elapsed, stage);
+      // 달은 위상(날짜)·반구(위치)로 그려지고, HUD 하트와 안 겹치게 아래로
+      // 내린 위치에 둔다 (task 1·2). moonSpot()은 클릭 판정과 같은 좌표를 준다.
+      const moon = moonSpot();
+      drawBackdrop(ctx, w, h, elapsed, stage, true, true, moon.x, moon.y, moonSouth);
 
       // 슬로모 (§5-2): 화면 전체에 라벤더 기운 — 끝나기 1초 전부터 옅어진다
       if (slowT > 0) {
@@ -721,12 +740,20 @@ function GameCore({ pet }: { pet: StoredPet }) {
       // 무적 중 초당 8회 반투명 깜빡임 — "지금은 안 맞아요"의 시각적 전달 (§8)
       const blinking =
         invincible > 0 && Math.floor(elapsed * TUNE.blinkHz * 2) % 2 === 1;
-      drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1, {
-        gazeX,
-        gazeY,
-        blink: blinkLeft > 0, // 눈 깜빡임 (§6-3) — 무적 투명 깜빡임과는 별개
-        mouthOpen,
-      });
+      drawMascot(
+        ctx,
+        mascot.x,
+        mascot.y,
+        mascot.r,
+        blinking ? 0.3 : 1,
+        {
+          gazeX,
+          gazeY,
+          blink: blinkLeft > 0, // 눈 깜빡임 (§6-3) — 무적 투명 깜빡임과는 별개
+          mouthOpen,
+        },
+        variant, // 설정에서 고른 캐릭터 (§8-4)
+      );
 
       // 방패 (§5-2): 몸 주위를 도는 민트 도트 6개 — "한 방은 막아준다"
       if (shield) {
@@ -839,6 +866,23 @@ function GameCore({ pet }: { pet: StoredPet }) {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
+      // 달 클릭 이스터에그 (task 2) — 플레이 중엔 추진 조작을 가로채면 안 되니
+      // 타이틀·게임오버·일시정지 때만. 음력은 근사이므로 "약"으로 표기한다.
+      if (phase !== "playing" || paused) {
+        const m = moonSpot();
+        if (moonHitTest(x, y, m.x, m.y, m.r)) {
+          const ph = getMoonPhase(Date.now());
+          moonMsg = `${ph.emoji} 음력 약 ${ph.lunarDayApprox}일 · ${ph.name}`;
+          pushUi();
+          if (moonMsgTimer) clearTimeout(moonMsgTimer);
+          moonMsgTimer = setTimeout(() => {
+            moonMsg = null;
+            pushUi();
+          }, 2800);
+          return;
+        }
+      }
+
       if (phase === "title") {
         start();
       } else if (phase === "over") {
@@ -920,6 +964,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
       canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("contextmenu", onContextMenu);
       window.removeEventListener("resize", onResize);
+      if (moonMsgTimer) clearTimeout(moonMsgTimer);
       disposeAudio();
     };
   }, []);

@@ -7,7 +7,7 @@
 // 한눈에 보이게 한다 (기능 3 — 네모 점 대신 마스코트).
 // ============================================================================
 
-import { COLORS } from "./constants";
+import { COLORS, type MascotVariantId } from "./constants";
 import { drawMascot } from "./mascot";
 import type { OrbitState } from "./orbit";
 
@@ -69,6 +69,7 @@ export function drawGlobeScene(
   track: Array<{ latDeg: number; lonDeg: number }>,
   spinDeg: number,
   elapsed: number,
+  variant: MascotVariantId = "mint",
 ): void {
   drawGlobeDisc(ctx, radius);
 
@@ -108,12 +109,7 @@ export function drawGlobeScene(
     ctx.fillRect(mx - reach, my - 1, 2, 2);
     ctx.fillRect(mx + reach - 2, my - 1, 2, 2);
     ctx.restore();
-    // 마스코트 본체 — 게임과 똑같은 그림. 안테나가 위로 나오니 살짝 내려 앉힌다.
-    drawMascot(ctx, mx, my, mr, 1, {
-      gazeX: 0,
-      gazeY: 0,
-      blink: false,
-      mouthOpen: 0,
-    });
+    // 마스코트 본체 — 설정에서 고른 캐릭터로 (§8-4).
+    drawMascot(ctx, mx, my, mr, 1, { gazeX: 0, gazeY: 0, blink: false, mouthOpen: 0 }, variant);
   }
 }

@@ -21,6 +21,7 @@ export type GameUiState = {
   newBest: boolean;
   combo: number; // 현재 점수 배율 (§5-1) — 2 이상일 때만 HUD에 표시
   paused: boolean; // 일시정지 (§4)
+  moonMsg: string | null; // 달 클릭 이스터에그 토스트 (§8-4, task 2)
 };
 
 export function GameUi({
@@ -32,6 +33,7 @@ export function GameUi({
   newBest,
   combo,
   paused,
+  moonMsg,
   pet,
   soundOn,
   onToggleSound,
@@ -50,6 +52,18 @@ export function GameUi({
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
+      {/* ---- 달 클릭 이스터에그 토스트 (§8-4, task 2) — 한글이라 HTML로 ---- */}
+      {moonMsg && (
+        <div className="absolute left-1/2 top-24 -translate-x-1/2 px-4">
+          <div
+            className="font-pixel-ko whitespace-nowrap border-2 px-4 py-2 text-sm text-white"
+            style={{ backgroundColor: COLORS.space, borderColor: COLORS.accent }}
+          >
+            {moonMsg}
+          </div>
+        </div>
+      )}
+
       {/* ---- HUD: 왼쪽 점수(+콤보), 오른쪽 HOME + 하트 ---- */}
       <div className="flex items-start justify-between px-5 pt-3 text-3xl tracking-widest">
         <div className="flex flex-col items-start">

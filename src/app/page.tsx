@@ -90,6 +90,12 @@ export default function Home() {
             >
               🛰️ 궤도 모니터
             </Link>
+            <Link
+              href="/settings"
+              className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
+            >
+              ⚙️ 설정
+            </Link>
           </div>
           <InstallButton />
         </div>

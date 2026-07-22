@@ -104,6 +104,25 @@ export const JUNK_NAMES: Record<JunkKind, string> = {
 };
 
 // ----------------------------------------------------------------------------
+// 캐릭터 3종 (§6-3) — 설정(/settings)에서 고른다. 색뿐 아니라 안테나·눈·입
+// 모양도 다르다(그리기 분기는 mascot.ts). 색은 이 파일에서만 정의한다(§11).
+// ----------------------------------------------------------------------------
+
+/** 캐릭터 식별자 — 저장값(sjs-settings)과 drawMascot 분기의 키. */
+export type MascotVariantId = "mint" | "coral" | "lavender";
+
+/** 캐릭터 3종의 이름과 몸통 색. drawMascot이 id로 모양을 분기한다. */
+export const MASCOT_VARIANTS: Array<{
+  id: MascotVariantId;
+  name: string;
+  body: string;
+}> = [
+  { id: "mint", name: "민초", body: "#7ee8b2" }, // COLORS.mascot과 같은 값
+  { id: "coral", name: "딸기", body: "#ff8fab" }, // COLORS.heart와 같은 값
+  { id: "lavender", name: "라벤더", body: "#b197fc" }, // 슬로모 라벤더와 같은 값
+];
+
+// ----------------------------------------------------------------------------
 // 대사 — 레트로 아케이드풍 영어 (§2 톤 앤 매너).
 // 픽셀 폰트(Press Start 2P)에 한글 글리프가 없어 인게임 카피는 영어를 쓴다.
 // 죽음/폭발 같은 어휘는 여전히 쓰지 않는다 — 귀엽고 낙천적으로.

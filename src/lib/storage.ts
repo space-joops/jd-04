@@ -6,7 +6,7 @@
 // 전부 try-catch로 감싸 실패해도 게임이 계속 굴러가게 한다 (§12).
 // ============================================================================
 
-import type { JunkKind } from "./constants";
+import type { JunkKind, MascotVariantId } from "./constants";
 
 /** 저장 키 — CLAUDE.md §8에 명세된 값. 바꾸면 기존 기록이 사라지니 주의. */
 const BEST_KEY = "sjs-best";
@@ -165,5 +165,71 @@ export function markIntroSeen(): void {
     localStorage.setItem(INTRO_KEY, "1");
   } catch {
     // 다음 방문에 인트로가 또 나올 뿐 — 게임엔 지장 없다.
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 사용자 설정 (§8-4, /settings) — 위치·캐릭터·시간 형식.
+// 위치(위/경도)는 달 위상의 반구와 궤도 모니터의 현지시간에, 캐릭터는 게임·
+// 궤도의 마스코트에, 시간 형식은 궤도 시계 표시에 쓰인다.
+// ----------------------------------------------------------------------------
+
+const SETTINGS_KEY = "sjs-settings";
+
+/** 시간 표시 형식 — UTC / 기기 현지 / 기지국(위치) 태양시. */
+export type TimeFormat = "utc" | "device" | "home";
+
+export type StoredSettings = {
+  /** 기지국(집) 위도 -90~90. 미설정이면 null. */
+  lat: number | null;
+  /** 기지국(집) 경도 -180~180. 미설정이면 null. */
+  lon: number | null;
+  /** 고른 캐릭터. */
+  character: MascotVariantId;
+  /** 궤도 시계 표시 형식. */
+  timeFormat: TimeFormat;
+};
+
+/** 설정이 없을 때의 기본값 — 클론만 받아도 문제없이 도는 안전한 값. */
+const DEFAULT_SETTINGS: StoredSettings = {
+  lat: null,
+  lon: null,
+  character: "mint",
+  timeFormat: "utc",
+};
+
+/** 설정을 읽는다. 없거나 깨졌으면 기본값. 필드별로 유효성을 검사한다. */
+export function loadSettings(): StoredSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const p = JSON.parse(raw) as Partial<StoredSettings>;
+    const validChar =
+      p.character === "mint" || p.character === "coral" || p.character === "lavender";
+    const validFmt =
+      p.timeFormat === "utc" || p.timeFormat === "device" || p.timeFormat === "home";
+    return {
+      lat:
+        typeof p.lat === "number" && Number.isFinite(p.lat) && Math.abs(p.lat) <= 90
+          ? p.lat
+          : null,
+      lon:
+        typeof p.lon === "number" && Number.isFinite(p.lon) && Math.abs(p.lon) <= 180
+          ? p.lon
+          : null,
+      character: validChar ? (p.character as MascotVariantId) : "mint",
+      timeFormat: validFmt ? (p.timeFormat as TimeFormat) : "utc",
+    };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+/** 설정을 저장한다. 실패해도 조용히 넘어간다 (§12). */
+export function saveSettings(settings: StoredSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // 저장 실패는 게임 진행에 영향을 주지 않는다.
   }
 }

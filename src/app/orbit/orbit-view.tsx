@@ -24,7 +24,7 @@ import {
   getOrbitState,
   sampleGroundTrack,
 } from "@/lib/orbit";
-import { type StoredPet, loadPet } from "@/lib/storage";
+import { type StoredPet, type StoredSettings, loadPet, loadSettings } from "@/lib/storage";
 
 /** telemetry·시계 React state 갱신 주기(초) — 캔버스는 매 프레임, 숫자는 가끔. */
 const TELEMETRY_INTERVAL = 0.25;
@@ -96,8 +96,13 @@ export function OrbitView() {
   // undefined = 아직 localStorage를 못 읽음 (서버/첫 클라 렌더 불일치 방지)
   const [pet, setPet] = useState<StoredPet | null | undefined>(undefined);
   const [telemetry, setTelemetry] = useState<OrbitState | null>(null);
-  const [clock, setClock] = useState<{ local: string; utc: string } | null>(null);
-  const [timeScale, setTimeScale] = useState(1);
+  const [clock, setClock] = useState<{
+    local: string;
+    secondLabel: string;
+    secondValue: string;
+  } | null>(null);
+  // 궤도가 도는 걸 바로 보고 싶으니 60×가 기본 (task 4).
+  const [timeScale, setTimeScale] = useState(60);
   const [zoom, setZoom] = useState(0);
   const [openHint, setOpenHint] = useState<string | null>(null);
 
@@ -126,6 +131,10 @@ export function OrbitView() {
     let sSize = fitCanvas(scene);
     let mSize = fitCanvas(map);
     const elements: OrbitElements = generateOrbitElements(pet.id);
+
+    // 설정 (§8-4) — 캐릭터·시간 형식·기지국 위치. 마운트 시 1회.
+    const settings: StoredSettings = loadSettings();
+    const variant = settings.character;
 
     let elapsed = 0;
     let virtualMs = Date.now();
@@ -166,6 +175,7 @@ export function OrbitView() {
           track,
           spinDeg,
           elapsed,
+          variant,
         );
         sctx.restore();
       } else if (z === 1) {
@@ -175,21 +185,31 @@ export function OrbitView() {
       }
 
       // --- 2D 세계지도 캔버스 (기능 2) — 줌과 무관하게 항상 궤적을 보여준다 ---
-      drawWorldMap(mctx, mSize.w, mSize.h, state, track, virtualMs);
+      drawWorldMap(mctx, mSize.w, mSize.h, state, track, virtualMs, variant);
 
       telemetryTimer += dt;
       if (telemetryTimer >= TELEMETRY_INTERVAL) {
         telemetryTimer = 0;
         setTelemetry(state);
+        // LOCAL = 줍스 발밑 지점의 현지 태양시 (위성추적기다운 값, 항상 표시)
         const lt = getLocalSolarTime(state.lonDeg, virtualMs);
         const d = new Date(virtualMs);
-        const utc = `${String(d.getUTCHours()).padStart(2, "0")}:${String(
-          d.getUTCMinutes(),
-        ).padStart(2, "0")} · ${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-        setClock({
-          local: `${String(lt.hours).padStart(2, "0")}:${String(lt.minutes).padStart(2, "0")}`,
-          utc,
-        });
+        const hm = (hh: number, mm: number) =>
+          `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+        const ymd = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+
+        // 두 번째 칸은 설정(§8-4)에 따라 UTC / 기기 현지 / 기지국 태양시 (task 3c)
+        let secondLabel = "UTC";
+        let secondValue = `${hm(d.getUTCHours(), d.getUTCMinutes())} · ${ymd}`;
+        if (settings.timeFormat === "device") {
+          secondLabel = "DEVICE";
+          secondValue = hm(d.getHours(), d.getMinutes());
+        } else if (settings.timeFormat === "home" && settings.lon !== null) {
+          const ht = getLocalSolarTime(settings.lon, virtualMs);
+          secondLabel = "HOME";
+          secondValue = hm(ht.hours, ht.minutes);
+        }
+        setClock({ local: hm(lt.hours, lt.minutes), secondLabel, secondValue });
       }
 
       raf = requestAnimationFrame(frame);
@@ -278,10 +298,10 @@ export function OrbitView() {
           </div>
           <div className="text-right">
             <span className="font-pixel text-[9px] tracking-widest text-gray-400">
-              UTC
+              {clock ? clock.secondLabel : "UTC"}
             </span>
             <p className="font-pixel text-[10px] text-white/80">
-              {clock ? clock.utc : "--:--"}
+              {clock ? clock.secondValue : "--:--"}
             </p>
           </div>
         </div>
