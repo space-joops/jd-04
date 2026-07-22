@@ -25,8 +25,16 @@ export type MoonPhase = {
   illum: number;
   /** 차는 중인가? (참=초승→보름, 거짓=보름→그믐) */
   waxing: boolean;
-  /** 위상 이름 (한글). */
-  name: string;
+  /** 위상 이름의 i18n 사전 키 (§2 — 표시는 화면 쪽에서 번역). */
+  nameKey:
+    | "moon.newMoon"
+    | "moon.waxingCrescent"
+    | "moon.firstQuarter"
+    | "moon.waxingGibbous"
+    | "moon.fullMoon"
+    | "moon.waningGibbous"
+    | "moon.lastQuarter"
+    | "moon.waningCrescent";
   /** 위상 이모지. */
   emoji: string;
   /** 음력 근사 날짜 (1 ~ 30). */
@@ -41,38 +49,38 @@ export function getMoonPhase(atMs: number): MoonPhase {
   const illum = (1 - Math.cos((2 * Math.PI * age) / SYNODIC_MONTH)) / 2;
   const waxing = age < SYNODIC_MONTH / 2;
 
-  let name = "보름달";
+  let nameKey: MoonPhase["nameKey"] = "moon.fullMoon";
   let emoji = "🌕";
   if (age < 1.5) {
-    name = "신월";
+    nameKey = "moon.newMoon";
     emoji = "🌑";
   } else if (age < 6.5) {
-    name = "초승달";
+    nameKey = "moon.waxingCrescent";
     emoji = "🌒";
   } else if (age < 9) {
-    name = "상현달";
+    nameKey = "moon.firstQuarter";
     emoji = "🌓";
   } else if (age < 13.5) {
-    name = "상현망간달";
+    nameKey = "moon.waxingGibbous";
     emoji = "🌔";
   } else if (age < 16.5) {
-    name = "보름달";
+    nameKey = "moon.fullMoon";
     emoji = "🌕";
   } else if (age < 20.5) {
-    name = "하현망간달";
+    nameKey = "moon.waningGibbous";
     emoji = "🌖";
   } else if (age < 23) {
-    name = "하현달";
+    nameKey = "moon.lastQuarter";
     emoji = "🌗";
   } else if (age < 28) {
-    name = "그믐달";
+    nameKey = "moon.waningCrescent";
     emoji = "🌘";
   } else {
-    name = "신월";
+    nameKey = "moon.newMoon";
     emoji = "🌑";
   }
 
-  return { age, illum, waxing, name, emoji, lunarDayApprox: Math.floor(age) + 1 };
+  return { age, illum, waxing, nameKey, emoji, lunarDayApprox: Math.floor(age) + 1 };
 }
 
 /** 클릭 판정 — (px,py)가 달 중심(cx,cy) 반경 r 안인가? */

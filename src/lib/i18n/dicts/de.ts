@@ -1,0 +1,174 @@
+// dicts/de.ts — Deutsches Wörterbuch (§2 i18n)
+
+import type { Dict } from "../index";
+
+export const de: Dict = {
+  "landing.tagline": "Weltraum-Snacks!",
+  "landing.rulesAria": "Spielregeln",
+  "landing.rule.thrust": "🕹 Zieh zum Schub — geh sparsam mit dem Sprit um",
+  "landing.rule.eat": "🛰 Schnapp dir Weltraumschrott für +10",
+  "landing.rule.avoid": "🌵 Weich den roten Stacheligen aus (3 Herzen)",
+  "landing.rule.star": "⭐ Sterne geben +40 — oder ein Herz, wenn du verletzt bist!",
+  "landing.rule.fuel": "🔋 Iss eine Batterie zum Auftanken",
+  "landing.link.rank": "🏆 Rangliste",
+  "landing.link.bag": "🎒 Inventar",
+  "landing.link.orbit": "🛰️ Orbit-Monitor",
+  "landing.link.settings": "⚙️ Einstellungen",
+  "landing.footer": "Der Kleine ist in der Bodenaufzucht des STELLAPET-Projekts aufgewachsen.",
+
+  "story.replay": "📜 Geschichte noch mal ansehen",
+  "story.aria": "Spielgeschichte-Intro",
+  "story.p1":
+    "2031 wurde das Kessler-Syndrom, vor dem alle nur Angst hatten, Wirklichkeit.\nSchrott zertrümmerte Schrott, und dieser Schrott brachte noch mehr hervor.\nDer niedrige Erdorbit wurde zu einer 8.000 Tonnen schweren Müllwolke.",
+  "story.p2":
+    "Die Antwort der Menschheit war keine größere Rakete und auch kein Laser.\nEs war ein lebender Satellit, der wächst, indem er Weltraumschrott frisst.\nAuf dem Boden liebevoll aufgezogen und dann einer nach dem anderen in den Orbit geschickt.",
+  "story.p3":
+    "Dreißig Jahre später.\nDer mit dem größten Mundwerk von allen\nmacht sich auch heute wieder auf in den niedrigen Orbit.\n\"Weltraum-Mampf-Mampf!\"",
+
+  "install.button": "📱 App installieren",
+  "install.iosSafari":
+    "Tippe unten in Safari auf den Teilen-Button (⬆) und wähle \"Zum Home-Bildschirm\", um als App zu installieren!",
+  "install.iosInapp":
+    "Aus diesem In-App-Browser kannst du nicht installieren. Öffne die Seite in Safari und tippe dann auf Teilen (⬆) → \"Zum Home-Bildschirm\".",
+  "install.openSafari": "In Safari öffnen",
+  "install.copyLink": "Link kopieren",
+  "install.copied": "Kopiert!",
+  "install.inappHint": "Wenn der Button nicht klappt, füge die kopierte Adresse in Safari ein.",
+  "install.other":
+    "Wähle im Browser-Menü (⋮) \"App installieren\" oder \"Zum Home-Bildschirm\"!",
+
+  "share.button": "📤 Teilen",
+  "share.text": "Ein Pixel-Arcade-Spiel, in dem du herabfallenden Weltraumschrott verschlingst!",
+  "share.copied": "Link kopiert!",
+
+  "play.cleanupLog": "🛰 {name}s Putz-Tagebuch",
+  "play.ariaResume": "Spiel fortsetzen",
+  "play.ariaPause": "Pause",
+  "play.ariaSoundOff": "Stummschalten",
+  "play.ariaSoundOn": "Ton an",
+  "play.ariaHome": "Zurück zum Startbildschirm",
+
+  "petname.title": "Gib deinem Pet einen Namen!",
+  "petname.sub":
+    "Deine Orbit-Putzrekorde treten unter diesem Namen an.\n(Bis zu 10 Zeichen · muss einzigartig sein)",
+  "petname.placeholder": "Mampfi",
+  "petname.taken": "Hoppla, der Name ist schon vergeben! Nimm einen anderen",
+  "petname.aria": "Pet-Name",
+
+  "leaderboard.runTop5": "EINZEL TOP 5",
+  "leaderboard.totalTop5": "GESAMT TOP 5",
+  "leaderboard.empty": "Noch keine Rekorde",
+  "leaderboard.sendFail": "Rekord konnte nicht gesendet werden — neuer Versuch nächste Runde",
+  "leaderboard.nameTaken": "Name war vergeben, daher konnte der Rekord nicht gesendet werden",
+
+  "rank.offline": "Offline-Modus — die Online-Rangliste kommt bald",
+  "rank.loadFail": "Rangliste konnte nicht geladen werden",
+  "rank.runTitle": "EINZEL TOP 10",
+  "rank.runSub": "Wunder einer Runde — beste Punktzahl in einem Spiel",
+  "rank.totalTitle": "GESAMT TOP 10",
+  "rank.totalSub": "Fleißige Putzhelden — im Leben gesammelter Weltraumschrott",
+
+  "bag.subtitle": "Was dein Haustier bisher gesammelt hat — nur auf diesem Gerät gespeichert",
+
+  "bag.summary": "{total} gesammelt · Dex {found}/{kinds}",
+  "bag.empty": "Deine Tasche ist noch leer — auf zur ersten Putzrunde?",
+  "bag.unit": "{n}",
+  "bag.desc.satellite": "Seine Solarpaneele funkeln immer noch",
+  "bag.desc.bolt": "Von welcher Rakete ist die wohl gefallen?",
+  "bag.desc.can": "Eine Spur von der Snackzeit eines Astronauten",
+  "bag.desc.spring": "Immer noch federnd und voller Schwung",
+  "bag.desc.glove": "Der Handschuh, den Ed White 1965 auf Gemini 4 verlor (wahre Geschichte)",
+  "bag.desc.toolbag": "Die Tasche, die 2008 beim Weltraumspaziergang von STS-126 davontrieb (wahre Geschichte)",
+  "bag.desc.fairing": "Ein Veteranenstück, das einst die Nase einer Rakete schützte",
+  "bag.desc.cubesat": "Verbeult, aber tapferer kleiner Satellit",
+  "bag.desc.fuel": "Mampf-Mampf-Sprit +800",
+  "bag.desc.star": "Orbit-Glück — Punkte oder ein Herz",
+  "bag.desc.magnet": "Zugkraft ×3, 8 Sek.",
+  "bag.desc.slowmo": "Fallende Dinge werden langsamer, 8 Sek.",
+  "bag.desc.shield": "Ich blocke einen Stachel für dich",
+
+  "junk.satellite": "Satellit",
+  "junk.bolt": "Schraube",
+  "junk.can": "Getränkedose",
+  "junk.spring": "Feder",
+  "junk.glove": "Astronautenhandschuh",
+  "junk.toolbag": "Werkzeugtasche",
+  "junk.fairing": "Raketenverkleidung",
+  "junk.cubesat": "CubeSat",
+  "junk.hazard": "Stachelball",
+  "junk.fuel": "Batterie",
+  "junk.star": "Stern",
+  "junk.magnet": "Magnet",
+  "junk.slowmo": "Uhr",
+  "junk.shield": "Schild",
+
+  "character.mint": "Minzi",
+  "character.coral": "Beeri",
+  "character.lavender": "Lavendi",
+
+  "moon.newMoon": "Neumond",
+  "moon.waxingCrescent": "Zunehmende Sichel",
+  "moon.firstQuarter": "Erstes Viertel",
+  "moon.waxingGibbous": "Zunehmender Mond",
+  "moon.fullMoon": "Vollmond",
+  "moon.waningGibbous": "Abnehmender Mond",
+  "moon.lastQuarter": "Letztes Viertel",
+  "moon.waningCrescent": "Abnehmende Sichel",
+  "moon.toast": "{emoji} Mondalter ~{day} T · {phase}",
+
+  "orbit.subtitle": "Zeigt in Echtzeit, wo dein Pet gerade über die Erde fliegt.",
+  "orbit.realtimeNote": "Dieser ganze Bildschirm wird live mit echter Orbitmechanik berechnet.",
+  "orbit.explainerLink": "👉 Was ist Orbitmechanik?",
+  "orbit.timeHint": "Beschleunige die Zeit, um den Weg deines Pets zu verfolgen.",
+  "orbit.ariaZoomIn": "Hineinzoomen",
+  "orbit.ariaZoomOut": "Herauszoomen",
+  "orbit.noPet": "Noch ist kein Pet in den Orbit gestartet.\nStarte ein Spiel und dein Pet wird geboren.",
+  "orbit.hint.LAT": "Breitengrad — wie weit nördlich/südlich dein Pet ist. Der Äquator ist 0°, Norden ist +.",
+  "orbit.hint.LON": "Längengrad — wie weit östlich/westlich. Greenwich ist 0°, Osten ist +.",
+  "orbit.hint.ALT": "Höhe — wie hoch über der Oberfläche es schwebt (km).",
+  "orbit.hint.VEL": "Geschwindigkeit — Bahngeschwindigkeit. Viel schneller als eine Gewehrkugel!",
+  "orbit.hint.PERIOD": "Umlaufzeit — Zeit für eine Erdumrundung (Minuten).",
+  "orbit.hint.REV": "Umläufe — wie viele Runden um die Erde seit dem Start.",
+  "orbit.explainer.intro":
+    "Drei Tafeln dazu, wie dein Pet weder fällt noch davonfliegt, sondern für immer die Erde umkreist!",
+  "orbit.explainer.title1": "Warum fällt es nicht?",
+  "orbit.explainer.body1":
+    "Eigentlich fällt dein Pet die ganze Zeit! Aber es saust so schnell zur Seite, dass die Erde genauso weit wegkrümmt, sodass es immer daneben fällt — und für immer kreist.",
+  "orbit.explainer.title2": "Höher = gemütlicher",
+  "orbit.explainer.body2":
+    "Je höher du gehst, desto langsamer umkreist du und desto länger dauert eine Runde. Dein Pet ist im niedrigen Orbit, also dauert eine Runde ~90 Minuten — sechzehn Runden am Tag!",
+  "orbit.explainer.title3": "Die Erde dreht sich!",
+  "orbit.explainer.body3":
+    "Während dein Pet eine Runde dreht, rotiert die Erde ganz leise. So verschiebt sich jede Runde ein Stück nach Westen und zeichnet diese berühmte Wellenlinie auf die Weltkarte.",
+
+  "settings.character": "Charakter",
+  "settings.location": "Standort der Bodenstation",
+  "settings.locationHint":
+    "Wird für die Mondhemisphäre (Sichelrichtung) und die Ortszeit des Orbit-Monitors verwendet.",
+  "settings.getLocation": "📍 Meinen aktuellen Standort verwenden",
+  "settings.geo.unsupported": "Dieses Gerät unterstützt Standort nicht. Gib ihn manuell ein.",
+  "settings.geo.checking": "Standort wird geprüft…",
+  "settings.geo.done": "Auf deinen aktuellen Standort gesetzt!",
+  "settings.geo.fail": "Standort nicht gefunden. Gib ihn manuell ein.",
+  "settings.latPlaceholder": "Breitengrad",
+  "settings.lonPlaceholder": "Längengrad",
+  "settings.citySearch": "Stadt suchen",
+  "settings.cityPlaceholder": "Stadtname...",
+  "settings.cityNone": "Keine passende Stadt",
+  "settings.mapPick": "Auf der Karte wählen",
+  "settings.mapHint": "Tippe auf die Karte, um einen Standort zu wählen.",
+  "settings.time": "Zeitanzeige",
+  "settings.timeHint": "Wird für die Uhr des Orbit-Monitors verwendet.",
+  "settings.tf.device": "Gerät lokal",
+  "settings.tf.home": "Solarzeit der Basis",
+  "settings.tf.homeLocked": "* Die Solarzeit der Basis braucht zuerst einen gesetzten Standort.",
+  "settings.tf.utcDesc": "UTC — koordinierte Weltzeit (bezogen auf Greenwich).",
+  "settings.tf.deviceDesc": "Gerät lokal — die Uhr genau dieses Geräts.",
+  "settings.tf.homeDesc":
+    "Solarzeit der Basis — mittlere Sonnenzeit, die UTC um 15°=1 Std. des Längengrads verschiebt (weicht von Standardzeit / Sommerzeit ab).",
+  "settings.orbitLink": "🛰️ Im Orbit-Monitor ansehen",
+  "settings.language": "Sprache",
+  "settings.langAuto": "Automatisch",
+
+  "sw.update": "🚀 Neue Version verfügbar! Zum Aktualisieren tippen",
+};

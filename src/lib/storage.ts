@@ -7,6 +7,7 @@
 // ============================================================================
 
 import type { JunkKind, MascotVariantId } from "./constants";
+import type { LangSetting } from "./i18n";
 
 /** 저장 키 — CLAUDE.md §8에 명세된 값. 바꾸면 기존 기록이 사라지니 주의. */
 const BEST_KEY = "sjs-best";
@@ -184,19 +185,40 @@ export type StoredSettings = {
   lat: number | null;
   /** 기지국(집) 경도 -180~180. 미설정이면 null. */
   lon: number | null;
+  /** 도시 검색으로 고른 경우의 표시용 이름(없으면 null). */
+  homeLabel: string | null;
   /** 고른 캐릭터. */
   character: MascotVariantId;
   /** 궤도 시계 표시 형식. */
   timeFormat: TimeFormat;
+  /** UI 언어 (§2 i18n). "auto"면 브라우저 언어를 따라간다. */
+  language: LangSetting;
 };
 
 /** 설정이 없을 때의 기본값 — 클론만 받아도 문제없이 도는 안전한 값. */
 const DEFAULT_SETTINGS: StoredSettings = {
   lat: null,
   lon: null,
+  homeLabel: null,
   character: "mint",
   timeFormat: "utc",
+  language: "auto",
 };
+
+/** language 값이 지원 코드/"auto"인지. */
+const LANG_SET = new Set<string>([
+  "auto",
+  "en",
+  "ko",
+  "ja",
+  "zh",
+  "es",
+  "fr",
+  "de",
+  "pt",
+  "ar",
+  "sw",
+]);
 
 /** 설정을 읽는다. 없거나 깨졌으면 기본값. 필드별로 유효성을 검사한다. */
 export function loadSettings(): StoredSettings {
@@ -208,6 +230,7 @@ export function loadSettings(): StoredSettings {
       p.character === "mint" || p.character === "coral" || p.character === "lavender";
     const validFmt =
       p.timeFormat === "utc" || p.timeFormat === "device" || p.timeFormat === "home";
+    const validLang = typeof p.language === "string" && LANG_SET.has(p.language);
     return {
       lat:
         typeof p.lat === "number" && Number.isFinite(p.lat) && Math.abs(p.lat) <= 90
@@ -217,8 +240,10 @@ export function loadSettings(): StoredSettings {
         typeof p.lon === "number" && Number.isFinite(p.lon) && Math.abs(p.lon) <= 180
           ? p.lon
           : null,
+      homeLabel: typeof p.homeLabel === "string" && p.homeLabel ? p.homeLabel : null,
       character: validChar ? (p.character as MascotVariantId) : "mint",
       timeFormat: validFmt ? (p.timeFormat as TimeFormat) : "utc",
+      language: validLang ? (p.language as LangSetting) : "auto",
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

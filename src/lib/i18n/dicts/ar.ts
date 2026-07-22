@@ -1,0 +1,174 @@
+// dicts/ar.ts — القاموس العربي (§2 i18n)
+
+import type { Dict } from "../index";
+
+export const ar: Dict = {
+  "landing.tagline": "وجبات الفضاء!",
+  "landing.rulesAria": "قواعد اللعبة",
+  "landing.rule.thrust": "🕹 اسحب للاندفاع — وفّر في الوقود",
+  "landing.rule.eat": "🛰 التهم نفايات الفضاء واكسب +10",
+  "landing.rule.avoid": "🌵 تفادَ الأشواك الحمراء المدببة (3 قلوب)",
+  "landing.rule.star": "⭐ النجوم تساوي +40 — أو قلبًا إن كنت متألمًا!",
+  "landing.rule.fuel": "🔋 التهم بطارية لتعيد التزود بالوقود",
+  "landing.link.rank": "🏆 الترتيب",
+  "landing.link.bag": "🎒 الحقيبة",
+  "landing.link.orbit": "🛰️ مراقب المدار",
+  "landing.link.settings": "⚙️ الإعدادات",
+  "landing.footer": "نشأ هذا الصغير في حضانة مشروع STELLAPET الأرضية.",
+
+  "story.replay": "📜 أعد عرض القصة",
+  "story.aria": "مقدمة قصة اللعبة",
+  "story.p1":
+    "في عام 2031، تحوّلت متلازمة كيسلر التي كان الجميع يخشاها إلى حقيقة.\nحطام يصطدم بحطام، وذاك الحطام يولّد المزيد.\nصار المدار الأرضي المنخفض سحابة نفايات وزنها 8,000 طن.",
+  "story.p2":
+    "لم يكن جواب البشرية صاروخًا أكبر ولا ليزرًا.\nبل قمرًا صناعيًا حيًّا ينمو بالتهام نفايات الفضاء.\nيُربّى بعناية على الأرض، ثم يُرسل إلى المدار واحدًا تلو الآخر.",
+  "story.p3":
+    "بعد ثلاثين عامًا.\nصاحب أكبر فم بينهم جميعًا\nيتوجه اليوم أيضًا إلى المدار المنخفض للعمل.\n\"وجبات الفضاء اللذيذة!\"",
+
+  "install.button": "📱 تثبيت التطبيق",
+  "install.iosSafari":
+    "اضغط زر المشاركة (⬆) أسفل سفاري واختر \"أضف إلى الشاشة الرئيسية\" لتثبيته كتطبيق!",
+  "install.iosInapp":
+    "لا يمكنك التثبيت من هذا المتصفح داخل التطبيق. افتحه في سفاري، ثم اضغط المشاركة (⬆) ← \"أضف إلى الشاشة الرئيسية\".",
+  "install.openSafari": "افتح في سفاري",
+  "install.copyLink": "انسخ الرابط",
+  "install.copied": "تم النسخ!",
+  "install.inappHint": "إن لم يعمل الزر، الصق العنوان المنسوخ في سفاري.",
+  "install.other":
+    "من قائمة المتصفح (⋮)، اختر \"تثبيت التطبيق\" أو \"أضف إلى الشاشة الرئيسية\"!",
+
+  "share.button": "📤 مشاركة",
+  "share.text": "لعبة أركيد بكسلية تلتهم فيها نفايات الفضاء المتساقطة!",
+  "share.copied": "تم نسخ الرابط!",
+
+  "play.cleanupLog": "🛰 سجل تنظيف {name}",
+  "play.ariaResume": "استئناف اللعبة",
+  "play.ariaPause": "إيقاف مؤقت",
+  "play.ariaSoundOff": "كتم الصوت",
+  "play.ariaSoundOn": "تشغيل الصوت",
+  "play.ariaHome": "العودة إلى الشاشة الرئيسية",
+
+  "petname.title": "سمِّ أليفك!",
+  "petname.sub":
+    "سجلات تنظيف المدار تتنافس بهذا الاسم.\n(حتى 10 أحرف · يجب أن يكون فريدًا من نوعه)",
+  "petname.placeholder": "لقيمات",
+  "petname.taken": "أوه، هذا الاسم محجوز! جرّب اسمًا آخر",
+  "petname.aria": "اسم الأليف",
+
+  "leaderboard.runTop5": "أفضل 5 بجولة واحدة",
+  "leaderboard.totalTop5": "أفضل 5 تراكميًا",
+  "leaderboard.empty": "لا سجلات بعد",
+  "leaderboard.sendFail": "تعذّر إرسال السجل — ستُعاد المحاولة في الجولة القادمة",
+  "leaderboard.nameTaken": "الاسم كان محجوزًا، فتعذّر إرسال السجل",
+
+  "rank.offline": "وضع دون اتصال — الترتيب عبر الإنترنت قادم قريبًا",
+  "rank.loadFail": "تعذّر تحميل الترتيب",
+  "rank.runTitle": "أفضل 10 بجولة واحدة",
+  "rank.runSub": "معجزة الجولة الواحدة — أعلى نتيجة في مباراة واحدة",
+  "rank.totalTitle": "أفضل 10 تراكميًا",
+  "rank.totalSub": "المنظّفون المجتهدون — إجمالي نفايات الفضاء المجموعة",
+
+  "bag.subtitle": "ما جمعه حيوانك الأليف حتى الآن — محفوظ على هذا الجهاز فقط",
+
+  "bag.summary": "{total} مجموعة · الفهرس {found}/{kinds}",
+  "bag.empty": "حقيبتك لا تزال فارغة — أتخرج في أول مهمة تنظيف لك؟",
+  "bag.unit": "{n}",
+  "bag.desc.satellite": "ألواحه الشمسية ما زالت تلمع",
+  "bag.desc.bolt": "من أي صاروخ سقط يا ترى؟",
+  "bag.desc.can": "أثر من وقت وجبة رائد فضاء الخفيفة",
+  "bag.desc.spring": "ما زال نطّاطًا ومفعمًا بالحيوية",
+  "bag.desc.glove": "القفاز الذي أضاعه Ed White في Gemini 4 عام 1965 (قصة حقيقية)",
+  "bag.desc.toolbag": "الحقيبة التي انجرفت في السير الفضائي لـ STS-126 عام 2008 (قصة حقيقية)",
+  "bag.desc.fairing": "قطعة مخضرمة حرست ذات يوم مقدمة صاروخ",
+  "bag.desc.cubesat": "قمر صغير مندعج لكنه شجاع",
+  "bag.desc.fuel": "وقود لذيذ +800",
+  "bag.desc.star": "حظ المدار — نتيجة أو قلب",
+  "bag.desc.magnet": "قوة جذب ×3، 8 ثوانٍ",
+  "bag.desc.slowmo": "الأشياء المتساقطة تبطئ، 8 ثوانٍ",
+  "bag.desc.shield": "سأصدّ عنك شوكة واحدة",
+
+  "junk.satellite": "قمر صناعي",
+  "junk.bolt": "برغي",
+  "junk.can": "علبة مشروب",
+  "junk.spring": "نابض",
+  "junk.glove": "قفاز رائد فضاء",
+  "junk.toolbag": "حقيبة أدوات",
+  "junk.fairing": "غطاء صاروخ",
+  "junk.cubesat": "CubeSat",
+  "junk.hazard": "كرة أشواك",
+  "junk.fuel": "بطارية",
+  "junk.star": "نجمة",
+  "junk.magnet": "مغناطيس",
+  "junk.slowmo": "ساعة",
+  "junk.shield": "درع",
+
+  "character.mint": "نعناعة",
+  "character.coral": "توتة",
+  "character.lavender": "خزامى",
+
+  "moon.newMoon": "محاق",
+  "moon.waxingCrescent": "هلال متزايد",
+  "moon.firstQuarter": "تربيع أول",
+  "moon.waxingGibbous": "أحدب متزايد",
+  "moon.fullMoon": "بدر",
+  "moon.waningGibbous": "أحدب متناقص",
+  "moon.lastQuarter": "تربيع أخير",
+  "moon.waningCrescent": "هلال متناقص",
+  "moon.toast": "{emoji} عمر القمر ~{day} يوم · {phase}",
+
+  "orbit.subtitle": "يُظهر أين يحلّق أليفك فوق الأرض الآن، في الوقت الحقيقي.",
+  "orbit.realtimeNote": "هذه الشاشة كلها محسوبة حيًّا بميكانيكا مدارية حقيقية.",
+  "orbit.explainerLink": "👉 ما هي الميكانيكا المدارية؟",
+  "orbit.timeHint": "سرّع الوقت لتشاهد مسار أليفك.",
+  "orbit.ariaZoomIn": "تكبير",
+  "orbit.ariaZoomOut": "تصغير",
+  "orbit.noPet": "لم يُطلق أي أليف إلى المدار بعد.\nابدأ اللعب ويولد أليفك.",
+  "orbit.hint.LAT": "خط العرض — كم يبعد أليفك شمالًا/جنوبًا عن الأرض. خط الاستواء 0°، والشمال +.",
+  "orbit.hint.LON": "خط الطول — كم يبعد شرقًا/غربًا. غرينتش 0°، والشرق +.",
+  "orbit.hint.ALT": "الارتفاع — كم يعلو فوق السطح (km).",
+  "orbit.hint.VEL": "السرعة — سرعة الدوران المداري. أسرع بكثير من رصاصة!",
+  "orbit.hint.PERIOD": "الدورة — الزمن اللازم لإكمال لفة حول الأرض (دقائق).",
+  "orbit.hint.REV": "عدد اللفات — كم دار حول الأرض منذ الإطلاق.",
+  "orbit.explainer.intro":
+    "ثلاث لوحات عن كيف لا يسقط أليفك ولا يطير بعيدًا، بل يدور حول الأرض إلى الأبد!",
+  "orbit.explainer.title1": "لماذا لا يسقط؟",
+  "orbit.explainer.body1":
+    "في الحقيقة أليفك يسقط دائمًا! لكنه يندفع جانبًا بسرعة هائلة فتنحني الأرض بعيدًا بالقدر نفسه، فيظل يخطئها — ويدور إلى الأبد.",
+  "orbit.explainer.title2": "الأعلى = الأكسل",
+  "orbit.explainer.body2":
+    "كلما ارتفعت أكثر، دُرتَ أبطأ وطالت لفتك الواحدة. أليفك في مدار منخفض، فلفته نحو 90 دقيقة — ست عشرة لفة في اليوم!",
+  "orbit.explainer.title3": "الأرض تدور!",
+  "orbit.explainer.body3":
+    "بينما يكمل أليفك لفة واحدة، تدور الأرض بهدوء. فكل مرور ينزاح قليلًا نحو الغرب، راسمًا ذلك الأثر المتموج الشهير على خريطة العالم.",
+
+  "settings.character": "الشخصية",
+  "settings.location": "موقع المحطة الأرضية",
+  "settings.locationHint":
+    "يُستخدم لنصف كرة القمر (اتجاه الهلال) وللوقت المحلي في مراقب المدار.",
+  "settings.getLocation": "📍 استخدم موقعي الحالي",
+  "settings.geo.unsupported": "هذا الجهاز لا يدعم تحديد الموقع. أدخله يدويًا.",
+  "settings.geo.checking": "جارٍ تحديد الموقع…",
+  "settings.geo.done": "تم الضبط على موقعك الحالي!",
+  "settings.geo.fail": "تعذّر الحصول على الموقع. أدخله يدويًا.",
+  "settings.latPlaceholder": "خط العرض",
+  "settings.lonPlaceholder": "خط الطول",
+  "settings.citySearch": "ابحث عن مدينة",
+  "settings.cityPlaceholder": "اسم المدينة...",
+  "settings.cityNone": "لا مدينة مطابقة",
+  "settings.mapPick": "اختر على الخريطة",
+  "settings.mapHint": "انقر الخريطة لاختيار موقع.",
+  "settings.time": "عرض الوقت",
+  "settings.timeHint": "يُستخدم لساعة مراقب المدار.",
+  "settings.tf.device": "توقيت الجهاز المحلي",
+  "settings.tf.home": "التوقيت الشمسي للمحطة",
+  "settings.tf.homeLocked": "* التوقيت الشمسي للمحطة يحتاج ضبط موقع أولًا.",
+  "settings.tf.utcDesc": "UTC — التوقيت العالمي المنسّق (بحسب غرينتش).",
+  "settings.tf.deviceDesc": "توقيت الجهاز المحلي — الساعة على هذا الجهاز بالذات.",
+  "settings.tf.homeDesc":
+    "التوقيت الشمسي للمحطة — التوقيت الشمسي المتوسط الذي يزيح UTC بمعدل 15°=ساعة من خط الطول (يختلف عن التوقيت الرسمي والتوقيت الصيفي).",
+  "settings.orbitLink": "🛰️ تحقق منه في مراقب المدار",
+  "settings.language": "اللغة",
+  "settings.langAuto": "تلقائي",
+
+  "sw.update": "🚀 إصدار جديد متاح! انقر للتحديث",
+};

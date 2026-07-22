@@ -18,7 +18,9 @@ import pkg from "../../package.json";
 import { AttractSky } from "./attract-sky";
 import { BestScore } from "./best-score";
 import { InstallButton } from "./install-button";
+import { ShareButton } from "./share-button";
 import { StoryIntro } from "./story-intro";
+import { T } from "./i18n-provider";
 
 export default function Home() {
   return (
@@ -41,19 +43,18 @@ export default function Home() {
           >
             SPACE JOOPS
           </h1>
-          <p className="font-pixel-ko text-2xl text-white">우주 냠냠!</p>
+          <p className="font-pixel-ko text-2xl text-white">
+            <T k="landing.tagline" />
+          </p>
         </header>
 
         {/* ---- 규칙 — 튜토리얼 없이 3초 안에 이해될 만큼만 (§1) ---- */}
-        <section
-          aria-label="게임 규칙"
-          className="font-pixel-ko flex flex-col gap-2 text-sm text-gray-300 md:text-base"
-        >
-          <p>🕹 드래그로 추진 — 연료를 아껴 쓰자</p>
-          <p>🛰 우주쓰레기는 냠냠 +10점</p>
-          <p>🌵 빨갛고 뾰족한 애들은 살살 피하기 (하트 3개)</p>
-          <p>⭐ 별은 +40점 — 하트가 닳았으면 하트로!</p>
-          <p>🔋 배터리를 먹으면 연료 충전</p>
+        <section className="font-pixel-ko flex flex-col gap-2 text-sm text-gray-300 md:text-base">
+          <p><T k="landing.rule.thrust" /></p>
+          <p><T k="landing.rule.eat" /></p>
+          <p><T k="landing.rule.avoid" /></p>
+          <p><T k="landing.rule.star" /></p>
+          <p><T k="landing.rule.fuel" /></p>
         </section>
 
         {/* ---- 시작 + 최고 기록 + 앱 설치 ----
@@ -76,28 +77,31 @@ export default function Home() {
               href="/rank"
               className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
             >
-              🏆 랭킹 보기
+              <T k="landing.link.rank" />
             </Link>
             <Link
               href="/bag"
               className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
             >
-              🎒 인벤토리
+              <T k="landing.link.bag" />
             </Link>
             <Link
               href="/orbit"
               className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
             >
-              🛰️ 궤도 모니터
+              <T k="landing.link.orbit" />
             </Link>
             <Link
               href="/settings"
               className="font-pixel-ko border-2 border-white/40 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 focus-visible:bg-white/10"
             >
-              ⚙️ 설정
+              <T k="landing.link.settings" />
             </Link>
           </div>
-          <InstallButton />
+          <div className="flex flex-wrap justify-center gap-3">
+            <InstallButton />
+            <ShareButton />
+          </div>
         </div>
 
         {/* ---- 각주 — 크로스오버 표기 + 버전 + 스토리 다시보기 ----
@@ -106,7 +110,7 @@ export default function Home() {
         <footer className="font-pixel-ko mt-auto flex flex-col items-center gap-2 text-xs text-gray-500">
           <StoryIntro />
           <p>
-            이 아이는 STELLAPET 프로젝트의 지상 육성장에서 자랐습니다.{" "}
+            <T k="landing.footer" />{" "}
             <span className="font-pixel text-[10px] text-gray-600">
               v{pkg.version}
             </span>

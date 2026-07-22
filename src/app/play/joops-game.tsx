@@ -24,6 +24,7 @@ import {
 import { type SkyStage, drawBackdrop } from "@/lib/backdrop";
 import { drawMascot } from "@/lib/mascot";
 import { getMoonPhase, moonHitTest } from "@/lib/moon";
+import { getDict, resolveLang, t as translate } from "@/lib/i18n";
 import {
   type Junk,
   drawJunk,
@@ -200,10 +201,13 @@ function GameCore({ pet }: { pet: StoredPet }) {
 
     let { w, h } = fitCanvas(canvas);
 
-    // ---- 사용자 설정 (§8-4): 캐릭터·위치(달 반구) — 마운트 시 1회 읽는다 ----
+    // ---- 사용자 설정 (§8-4): 캐릭터·위치(달 반구)·언어 — 마운트 시 1회 읽는다 ----
     const settings = loadSettings();
     const variant: MascotVariantId = settings.character;
     const moonSouth = (settings.lat ?? 0) < 0; // 남반구면 달 밝은 쪽이 반대
+    // 달 이스터에그 토스트를 현재 언어로 짓기 위한 사전 스냅샷 (§2 i18n).
+    // 게임 루프는 React 밖이라 컨텍스트 대신 데이터를 직접 읽는다.
+    const dict = getDict(resolveLang(settings.language));
 
     /** 배경 달 위치·반지름 — 우상단 하트 HUD와 안 겹치게 아래로 내렸다 (task 1). */
     const moonSpot = () => ({ x: w - 56, y: 170, r: 26 });
@@ -872,7 +876,11 @@ function GameCore({ pet }: { pet: StoredPet }) {
         const m = moonSpot();
         if (moonHitTest(x, y, m.x, m.y, m.r)) {
           const ph = getMoonPhase(Date.now());
-          moonMsg = `${ph.emoji} 음력 약 ${ph.lunarDayApprox}일 · ${ph.name}`;
+          moonMsg = translate(dict, "moon.toast", {
+            emoji: ph.emoji,
+            day: ph.lunarDayApprox,
+            phase: translate(dict, ph.nameKey),
+          });
           pushUi();
           if (moonMsgTimer) clearTimeout(moonMsgTimer);
           moonMsgTimer = setTimeout(() => {

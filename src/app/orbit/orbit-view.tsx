@@ -25,6 +25,8 @@ import {
   sampleGroundTrack,
 } from "@/lib/orbit";
 import { type StoredPet, type StoredSettings, loadPet, loadSettings } from "@/lib/storage";
+import type { DictKey } from "@/lib/i18n";
+import { useT } from "../i18n-provider";
 
 /** telemetry·시계 React state 갱신 주기(초) — 캔버스는 매 프레임, 숫자는 가끔. */
 const TELEMETRY_INTERVAL = 0.25;
@@ -39,27 +41,19 @@ const TIME_SCALES: Array<{ mult: number; label: string }> = [
   { mult: 86400, label: "1d/s" },
 ];
 
-/** 줌 레벨 (기능 6) — 0 근접 지구본 / 1 지구+달 / 2 태양계. */
+/** 줌 레벨 (기능 6) — 0 근접 지구본 / 1 지구+달 / 2 태양계. (영어 라벨 고정) */
 const ZOOM_LABELS = ["EARTH VIEW", "EARTH · MOON", "SOLAR SYSTEM"];
-
-/** telemetry 각 항목의 쉬운 한글 설명 (기능 1 — 툴팁). */
-const HINTS: Record<string, string> = {
-  LAT: "위도 — 줍스가 지구의 남북 어디쯤 위에 있는지. 적도가 0°, 북쪽이 +.",
-  LON: "경도 — 동서 어디쯤. 영국 그리니치가 0°, 동쪽이 +.",
-  ALT: "고도 — 지표면에서 얼마나 높이 떠 있는지 (km).",
-  VEL: "속력 — 궤도를 도는 빠르기. 총알보다 훨씬 빨라!",
-  PERIOD: "주기 — 지구를 한 바퀴 도는 데 걸리는 시간 (분).",
-  REV: "공전수 — 발사한 뒤 지금까지 지구를 몇 바퀴 돌았는지.",
-};
 
 function TelemetryCard({
   label,
   value,
+  hint,
   open,
   onToggle,
 }: {
   label: string;
   value: string;
+  hint: string;
   open: boolean;
   onToggle: (label: string | null) => void;
 }) {
@@ -85,7 +79,7 @@ function TelemetryCard({
           className="font-pixel-ko absolute bottom-full left-0 z-20 mb-1 w-52 border-2 px-3 py-2 text-left text-xs leading-relaxed text-white shadow-lg"
           style={{ backgroundColor: COLORS.space, borderColor: COLORS.accent }}
         >
-          {HINTS[label]}
+          {hint}
         </div>
       )}
     </div>
@@ -93,6 +87,7 @@ function TelemetryCard({
 }
 
 export function OrbitView() {
+  const { t } = useT();
   // undefined = 아직 localStorage를 못 읽음 (서버/첫 클라 렌더 불일치 방지)
   const [pet, setPet] = useState<StoredPet | null | undefined>(undefined);
   const [telemetry, setTelemetry] = useState<OrbitState | null>(null);
@@ -235,10 +230,8 @@ export function OrbitView() {
   if (pet === null) {
     return (
       <div className="flex flex-col items-center gap-4 border-2 border-white/15 bg-black/30 px-6 py-10">
-        <p className="font-pixel-ko text-sm text-gray-300">
-          아직 궤도로 올라간 펫이 없어요.
-          <br />
-          플레이를 시작하면 펫이 태어나요.
+        <p className="font-pixel-ko whitespace-pre-line text-sm text-gray-300">
+          {t("orbit.noPet")}
         </p>
         <Link
           href="/play?start=1"
@@ -266,7 +259,7 @@ export function OrbitView() {
             type="button"
             onClick={() => setZoom((z) => Math.max(0, z - 1))}
             disabled={zoom === 0}
-            aria-label="줌 인"
+            aria-label={t("orbit.ariaZoomIn")}
             className="font-pixel h-8 w-8 border-2 text-sm text-white/80 disabled:opacity-30"
             style={{ borderColor: "rgba(255,255,255,0.4)" }}
           >
@@ -276,7 +269,7 @@ export function OrbitView() {
             type="button"
             onClick={() => setZoom((z) => Math.min(2, z + 1))}
             disabled={zoom === 2}
-            aria-label="줌 아웃"
+            aria-label={t("orbit.ariaZoomOut")}
             className="font-pixel h-8 w-8 border-2 text-sm text-white/80 disabled:opacity-30"
             style={{ borderColor: "rgba(255,255,255,0.4)" }}
           >
@@ -326,7 +319,7 @@ export function OrbitView() {
           ))}
         </div>
         <p className="font-pixel-ko text-[11px] text-gray-500">
-          시간을 빠르게 돌리면 줍스 이동 경로가 보여요.
+          {t("orbit.timeHint")}
         </p>
       </div>
 
@@ -346,6 +339,7 @@ export function OrbitView() {
             key={label}
             label={label}
             value={value}
+            hint={t(`orbit.hint.${label}` as DictKey)}
             open={openHint === label}
             onToggle={setOpenHint}
           />

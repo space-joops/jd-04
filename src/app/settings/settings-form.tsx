@@ -3,22 +3,25 @@
 // ============================================================================
 // settings-form.tsx — 설정 폼 (§8-4)
 //
-// 캐릭터 3종·기지국 위치·시간 표시 형식을 고른다. 변경 즉시 localStorage에
-// 저장(saveSettings) — "저장 버튼"을 따로 두지 않는다(오락실 문법, 바로 반영).
-// 캐릭터 미리보기는 이미지가 아니라 게임의 drawMascot을 미니 캔버스에 그린 것
-// (에셋 0개 §11) — 게임 도트가 바뀌면 미리보기도 저절로 같아진다.
+// 언어·캐릭터·기지국 위치·시간 표시 형식을 고른다. 변경 즉시 localStorage에
+// 저장(오락실 문법). 언어는 I18nProvider가 관리(바꾸면 화면이 즉시 그 언어로),
+// 나머지는 saveSettings로 저장한다. 캐릭터 미리보기·위치 지도는 게임과 같은
+// 그리기 코드를 재사용한다(에셋 0개 §11).
 // ============================================================================
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { COLORS, MASCOT_VARIANTS, type MascotVariantId } from "@/lib/constants";
 import { drawMascot } from "@/lib/mascot";
+import { LANGS, type DictKey } from "@/lib/i18n";
 import {
   type StoredSettings,
   type TimeFormat,
   loadSettings,
   saveSettings,
 } from "@/lib/storage";
+import { useT } from "../i18n-provider";
+import { LocationPicker } from "./location-picker";
 
 /** 캐릭터 한 종을 미니 캔버스에 그린다 (bag-grid.tsx와 같은 원리). */
 function CharacterPreview({ variant }: { variant: MascotVariantId }) {
@@ -36,13 +39,21 @@ function CharacterPreview({ variant }: { variant: MascotVariantId }) {
   return <canvas ref={ref} width={112} height={112} aria-hidden className="h-14 w-14" />;
 }
 
-const TIME_FORMATS: Array<{ id: TimeFormat; label: string }> = [
-  { id: "utc", label: "UTC" },
-  { id: "device", label: "기기 현지" },
-  { id: "home", label: "기지국 태양시" },
-];
+const TIME_FORMATS: TimeFormat[] = ["utc", "device", "home"];
+/** 세그먼트 라벨 — utc는 영어 고정, 나머지는 사전. */
+const TF_LABEL: Record<TimeFormat, DictKey | "UTC"> = {
+  utc: "UTC",
+  device: "settings.tf.device",
+  home: "settings.tf.home",
+};
+const TF_DESC: Record<TimeFormat, DictKey> = {
+  utc: "settings.tf.utcDesc",
+  device: "settings.tf.deviceDesc",
+  home: "settings.tf.homeDesc",
+};
 
 export function SettingsForm() {
+  const { t, setting: langSetting, setLang } = useT();
   // null = 아직 localStorage를 못 읽음 (서버/첫 클라 렌더 불일치 방지)
   const [settings, setSettings] = useState<StoredSettings | null>(null);
   const [geoMsg, setGeoMsg] = useState<string | null>(null);
@@ -55,37 +66,57 @@ export function SettingsForm() {
     return <p className="animate-pulse font-pixel text-xs text-gray-400">LOADING...</p>;
   }
 
-  /** 부분 갱신 + 즉시 저장. */
+  /** 부분 갱신 + 즉시 저장. 언어는 provider가 따로 관리하므로 현재 값을 유지한다. */
   const update = (patch: Partial<StoredSettings>) => {
-    const next = { ...settings, ...patch };
+    const next = { ...settings, ...patch, language: langSetting };
     setSettings(next);
     saveSettings(next);
   };
 
   const askLocation = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoMsg("이 기기는 위치를 지원하지 않아요. 직접 입력해줘.");
+      setGeoMsg(t("settings.geo.unsupported"));
       return;
     }
-    setGeoMsg("위치 확인 중…");
+    setGeoMsg(t("settings.geo.checking"));
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         update({
           lat: Math.round(pos.coords.latitude * 100) / 100,
           lon: Math.round(pos.coords.longitude * 100) / 100,
+          homeLabel: null,
         });
-        setGeoMsg("현재 위치로 맞췄어!");
+        setGeoMsg(t("settings.geo.done"));
       },
-      () => setGeoMsg("위치를 못 가져왔어. 직접 입력해줘."),
+      () => setGeoMsg(t("settings.geo.fail")),
       { timeout: 8000 },
     );
   };
 
+  const homeDisabled = settings.lat === null || settings.lon === null;
+
   return (
     <div className="flex w-full flex-col gap-8 text-left">
+      {/* ---- 언어 ---- */}
+      <section className="flex flex-col gap-3">
+        <h2 className="font-pixel-ko text-base text-white">{t("settings.language")}</h2>
+        <select
+          value={langSetting}
+          onChange={(e) => setLang(e.target.value as typeof langSetting)}
+          className="font-pixel-ko w-full border-2 border-white/20 bg-black/40 px-3 py-2 text-sm text-white outline-none focus-visible:border-white"
+        >
+          <option value="auto">{t("settings.langAuto")}</option>
+          {LANGS.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+      </section>
+
       {/* ---- 캐릭터 3종 ---- */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-pixel-ko text-base text-white">캐릭터</h2>
+        <h2 className="font-pixel-ko text-base text-white">{t("settings.character")}</h2>
         <div className="grid grid-cols-3 gap-3">
           {MASCOT_VARIANTS.map((v) => {
             const chosen = settings.character === v.id;
@@ -103,7 +134,7 @@ export function SettingsForm() {
                   className="font-pixel-ko text-sm"
                   style={{ color: chosen ? COLORS.accent : "rgba(255,255,255,0.7)" }}
                 >
-                  {v.name}
+                  {t(`character.${v.id}` as DictKey)}
                 </span>
               </button>
             );
@@ -113,19 +144,31 @@ export function SettingsForm() {
 
       {/* ---- 위치(기지국) ---- */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-pixel-ko text-base text-white">기지국 위치</h2>
-        <p className="font-pixel-ko text-xs text-gray-400">
-          달의 반구(초승달 방향)와 궤도 모니터의 현지시간에 쓰여요.
-        </p>
+        <h2 className="font-pixel-ko text-base text-white">{t("settings.location")}</h2>
+        <p className="font-pixel-ko text-xs text-gray-400">{t("settings.locationHint")}</p>
+        {settings.homeLabel && (
+          <p className="font-pixel-ko text-sm" style={{ color: COLORS.mascot }}>
+            📍 {settings.homeLabel}
+          </p>
+        )}
         <button
           type="button"
           onClick={askLocation}
           className="font-pixel-ko self-start border-2 px-4 py-2 text-sm"
           style={{ color: COLORS.mascot, borderColor: COLORS.mascot }}
         >
-          📍 현재 위치 가져오기
+          {t("settings.getLocation")}
         </button>
         {geoMsg && <p className="font-pixel-ko text-xs text-gray-300">{geoMsg}</p>}
+
+        {/* 지도 찍기 + 도시 검색 */}
+        <LocationPicker
+          lat={settings.lat}
+          lon={settings.lon}
+          onPick={(lat, lon, label) => update({ lat, lon, homeLabel: label })}
+        />
+
+        {/* 수동 입력 */}
         <div className="flex gap-3">
           <label className="flex flex-1 flex-col gap-1">
             <span className="font-pixel text-[9px] tracking-widest text-gray-400">LAT</span>
@@ -136,9 +179,12 @@ export function SettingsForm() {
               min={-90}
               max={90}
               value={settings.lat ?? ""}
-              placeholder="위도"
+              placeholder={t("settings.latPlaceholder")}
               onChange={(e) =>
-                update({ lat: e.target.value === "" ? null : Number(e.target.value) })
+                update({
+                  lat: e.target.value === "" ? null : Number(e.target.value),
+                  homeLabel: null,
+                })
               }
               className="font-pixel-ko w-full border-2 border-white/20 bg-black/40 px-2 py-2 text-sm text-white outline-none focus-visible:border-white"
             />
@@ -152,9 +198,12 @@ export function SettingsForm() {
               min={-180}
               max={180}
               value={settings.lon ?? ""}
-              placeholder="경도"
+              placeholder={t("settings.lonPlaceholder")}
               onChange={(e) =>
-                update({ lon: e.target.value === "" ? null : Number(e.target.value) })
+                update({
+                  lon: e.target.value === "" ? null : Number(e.target.value),
+                  homeLabel: null,
+                })
               }
               className="font-pixel-ko w-full border-2 border-white/20 bg-black/40 px-2 py-2 text-sm text-white outline-none focus-visible:border-white"
             />
@@ -162,22 +211,21 @@ export function SettingsForm() {
         </div>
       </section>
 
-      {/* ---- 시간 표시 형식 ---- */}
+      {/* ---- 시간 표시 형식 (+ 뜻 설명, task 1) ---- */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-pixel-ko text-base text-white">시간 표시</h2>
-        <p className="font-pixel-ko text-xs text-gray-400">
-          궤도 모니터의 시계에 쓰여요.
-        </p>
+        <h2 className="font-pixel-ko text-base text-white">{t("settings.time")}</h2>
+        <p className="font-pixel-ko text-xs text-gray-400">{t("settings.timeHint")}</p>
         <div className="flex gap-2">
           {TIME_FORMATS.map((f) => {
-            const chosen = settings.timeFormat === f.id;
-            const disabled = f.id === "home" && (settings.lat === null || settings.lon === null);
+            const chosen = settings.timeFormat === f;
+            const disabled = f === "home" && homeDisabled;
+            const label = TF_LABEL[f];
             return (
               <button
-                key={f.id}
+                key={f}
                 type="button"
                 disabled={disabled}
-                onClick={() => update({ timeFormat: f.id })}
+                onClick={() => update({ timeFormat: f })}
                 aria-pressed={chosen}
                 className="font-pixel-ko flex-1 border-2 px-1 py-2 text-xs transition-colors disabled:opacity-30"
                 style={
@@ -186,14 +234,18 @@ export function SettingsForm() {
                     : { borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }
                 }
               >
-                {f.label}
+                {label === "UTC" ? "UTC" : t(label)}
               </button>
             );
           })}
         </div>
-        {settings.lat === null && (
+        {/* 고른 형식의 뜻 설명 (task 1) */}
+        <p className="font-pixel-ko text-[11px] leading-relaxed text-gray-400">
+          {t(TF_DESC[settings.timeFormat])}
+        </p>
+        {homeDisabled && (
           <p className="font-pixel-ko text-[11px] text-gray-500">
-            * 기지국 태양시는 위치를 먼저 설정해야 골라져요.
+            {t("settings.tf.homeLocked")}
           </p>
         )}
       </section>
@@ -203,7 +255,7 @@ export function SettingsForm() {
         className="font-pixel-ko self-center text-sm underline underline-offset-4"
         style={{ color: COLORS.mascot }}
       >
-        🛰️ 궤도 모니터에서 확인하기
+        {t("settings.orbitLink")}
       </Link>
     </div>
   );
