@@ -13,7 +13,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/lib/constants";
-import { hasSeenIntro, markIntroSeen } from "@/lib/storage";
+import { hasSeenIntro, loadMuted, markIntroSeen } from "@/lib/storage";
+import { ensureAudio, setMuted, startStoryTheme, stopStoryTheme } from "@/lib/sound";
 import { useT } from "./i18n-provider";
 import { StoryScene } from "./story-scene";
 
@@ -41,6 +42,18 @@ export function StoryIntro() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
+
+  // 스토리 사운드 (§4·§10) — 열릴 때 앰비언트 테마를 켜고 닫을 때 끈다.
+  // 게임과 AudioContext를 공유하므로 dispose는 하지 않는다(테마 노드만 정리).
+  // ⚠️ 첫 방문 자동 오픈은 사용자 제스처가 없어 브라우저가 오디오를 막는다
+  // (§12) — 이때는 조용히 무음. "스토리 다시보기" 버튼(제스처)으로 열면 들린다.
+  useEffect(() => {
+    if (!open) return;
+    setMuted(loadMuted());
+    ensureAudio(); // suspended면 조용히 실패 — StoryScene 큐도 함께 무음
+    startStoryTheme();
+    return () => stopStoryTheme();
+  }, [open]);
 
   return (
     <>

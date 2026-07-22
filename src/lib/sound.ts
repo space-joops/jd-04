@@ -126,3 +126,89 @@ export function playBlock(): void {
   chirp("triangle", 262, 262, 0.06, 0.08, 0);
   chirp("triangle", 392, 392, 0.12, 0.08, 0.05);
 }
+
+// ----------------------------------------------------------------------------
+// 스토리 인트로 사운드 (§4) — 파일 0개, 전부 합성.
+// 잔잔한 앰비언트 패드(드론)를 깔고, 막 전환에 큐를 얹는다. 게임과 같은
+// AudioContext를 공유하되, 테마는 이 노드들만 개별로 껐다 켠다 — 인트로가
+// 컨텍스트를 닫으면 게임 효과음이 죽으므로 disposeAudio는 절대 부르지 않는다.
+// ----------------------------------------------------------------------------
+
+/** 앰비언트 패드가 물고 있는 노드들 — stopStoryTheme이 정리한다. */
+let storyNodes: Array<OscillatorNode | GainNode> = [];
+let storyGain: GainNode | null = null;
+
+/**
+ * 스토리 테마 시작 — 우주 정거장 같은 낮은 드론(디튠 사인 2개 + 5도 위 한 음).
+ * 반드시 ensureAudio() 뒤에(제스처 안에서) 부를 것. suspended면 조용히 무음.
+ */
+export function startStoryTheme(): void {
+  if (!audio || muted || storyGain) return; // 이미 켜져 있으면 중복 방지
+  try {
+    const t0 = audio.currentTime;
+    const master = audio.createGain();
+    master.gain.setValueAtTime(0.0001, t0);
+    master.gain.exponentialRampToValueAtTime(0.05, t0 + 2); // 2초에 걸쳐 스며들 듯
+    master.connect(audio.destination);
+    storyGain = master;
+
+    // 낮은 드론 3음 (A2·A2 디튠·E3) — 우주의 "웅" 하는 배경
+    const freqs = [110, 110.6, 164.81];
+    for (const f of freqs) {
+      const osc = audio.createOscillator();
+      const g = audio.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(f, t0);
+      g.gain.setValueAtTime(0.5, t0);
+      osc.connect(g).connect(master);
+      osc.start(t0);
+      storyNodes.push(osc, g);
+    }
+    // 아주 느린 숨결 LFO — 패드 음량이 천천히 밀물썰물
+    const lfo = audio.createOscillator();
+    const lfoGain = audio.createGain();
+    lfo.frequency.setValueAtTime(0.08, t0); // ~12초 주기
+    lfoGain.gain.setValueAtTime(0.02, t0);
+    lfo.connect(lfoGain).connect(master.gain);
+    lfo.start(t0);
+    storyNodes.push(lfo, lfoGain);
+  } catch {
+    storyGain = null;
+  }
+}
+
+/** 스토리 테마 정지 — 부드럽게 내리고 노드만 해제(컨텍스트는 그대로). */
+export function stopStoryTheme(): void {
+  if (!audio) {
+    storyNodes = [];
+    storyGain = null;
+    return;
+  }
+  try {
+    const t0 = audio.currentTime;
+    if (storyGain) {
+      storyGain.gain.cancelScheduledValues(t0);
+      storyGain.gain.setValueAtTime(Math.max(0.0001, storyGain.gain.value), t0);
+      storyGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+    }
+    for (const n of storyNodes) {
+      if ("stop" in n) {
+        try {
+          (n as OscillatorNode).stop(t0 + 0.7);
+        } catch {
+          // 이미 멈췄으면 무시
+        }
+      }
+    }
+  } catch {
+    // 정리 실패는 무시 — 다음 재생 때 어차피 새로 만든다
+  }
+  storyNodes = [];
+  storyGain = null;
+}
+
+/** A막(케슬러) 큐 — 낮게 부풀었다 꺼지는 불길한 스웰(하강 문법 §10). */
+export function playStoryRumble(): void {
+  chirp("sawtooth", 70, 42, 1.4, 0.05);
+  chirp("sine", 140, 90, 1.4, 0.04);
+}
