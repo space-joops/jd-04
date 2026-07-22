@@ -16,6 +16,15 @@ export const COLORS = {
   earth: "#2f6db8", // 지구 바다 파랑 (배경 고도 연출 §11)
   land: "#4ea86e", // 지구 대륙 초록
   moonRock: "#9aa5b5", // 달 표면 회색
+  // 태양계 줌아웃(§8-3 기능 6) — 행성 도트 색. 실제 색을 픽셀 톤으로 눌러 담았다.
+  sun: "#ffcc4d", // 태양 노랑 (accent보다 진하게)
+  mercury: "#b0a58f", // 수성 회갈
+  venus: "#e6c98a", // 금성 미색
+  mars: "#e07a5f", // 화성 붉은흙
+  jupiter: "#d9a066", // 목성 갈색 띠
+  saturn: "#e3cfa3", // 토성 연노랑
+  uranus: "#8fd6d6", // 천왕성 청록
+  neptune: "#5a7de8", // 해왕성 파랑
 } as const;
 
 /**
