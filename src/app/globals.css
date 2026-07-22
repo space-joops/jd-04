@@ -37,24 +37,27 @@ body {
 ---------------------------------------------------------------------------- */
 @keyframes sw-crawl {
   from {
-    transform: rotateX(24deg) translateY(100%);
+    transform: rotateX(10deg) translateY(100%);
   }
   to {
-    transform: rotateX(24deg) translateY(-170%);
+    /* 화면 위까지 완전히 흘러 올라가도록 더 멀리 (-170% → -250%) */
+    transform: rotateX(10deg) translateY(-250%);
   }
 }
 
 .starwars-stage {
-  perspective: 340px;
+  /* 원근을 완만하게(340→520) — 텍스트가 덜 눕고 더 서 보인다 */
+  perspective: 520px;
   overflow: hidden;
-  /* 위는 서서히 사라지고 아래는 또렷하게 등장 */
-  mask-image: linear-gradient(to bottom, transparent 0%, black 28%, black 96%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28%, black 96%, transparent 100%);
+  /* 위는 서서히 사라지되(10%), 글이 위쪽까지 더 오래 보이게 */
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 96%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 96%, transparent 100%);
 }
 
 .starwars-crawl-once {
   transform-origin: 50% 100%;
-  animation: sw-crawl 18s linear forwards;
+  /* 이동 거리가 늘어 속도 유지 위해 18s → 20s */
+  animation: sw-crawl 20s linear forwards;
 }
 
 /* 움직이는 글이 힘든 사용자에게는 정지 화면으로 (§13 접근성).

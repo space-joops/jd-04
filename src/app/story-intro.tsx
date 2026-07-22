@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/lib/constants";
 import { hasSeenIntro, markIntroSeen } from "@/lib/storage";
 import { useT } from "./i18n-provider";
+import { StoryScene } from "./story-scene";
 
 export function StoryIntro() {
   const { t } = useT();
@@ -59,10 +60,13 @@ export function StoryIntro() {
           className="fixed inset-0 z-50 flex cursor-pointer flex-col"
           style={{ backgroundColor: COLORS.space }}
         >
+          {/* 삽화 애니메이션 — 크롤 텍스트 뒤에 깔린다 (open마다 처음부터 재생) */}
+          <StoryScene />
+
           {/* 크롤 무대 — 화면 전체. 애니메이션이 끝까지 가면 스스로 닫힌다.
               번역 문장은 언어마다 강조 위치가 달라 인라인 색을 빼고
               whitespace-pre-line으로 \n 줄바꿈만 살린다 (§2 i18n). */}
-          <div className="starwars-stage h-full w-full">
+          <div className="starwars-stage relative z-10 h-full w-full">
             <div
               onAnimationEnd={close}
               className="starwars-crawl-once font-pixel-ko mx-auto flex h-full max-w-xl flex-col justify-end gap-14 whitespace-pre-line px-8 text-center text-lg leading-loose text-gray-200 md:text-2xl"
