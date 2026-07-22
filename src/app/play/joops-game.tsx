@@ -15,8 +15,6 @@ import { useEffect, useRef, useState } from "react";
 import { fitCanvas } from "@/lib/canvas";
 import {
   COLORS,
-  EAT_WORDS,
-  HIT_WORDS,
   JUNK_COLORS,
   JUNK_FOOD_KINDS,
   type MascotVariantId,
@@ -205,9 +203,15 @@ function GameCore({ pet }: { pet: StoredPet }) {
     const settings = loadSettings();
     const variant: MascotVariantId = settings.character;
     const moonSouth = (settings.lat ?? 0) < 0; // 남반구면 달 밝은 쪽이 반대
-    // 달 이스터에그 토스트를 현재 언어로 짓기 위한 사전 스냅샷 (§2 i18n).
-    // 게임 루프는 React 밖이라 컨텍스트 대신 데이터를 직접 읽는다.
+    // 캔버스 팝업("YUM!" 등)·달 토스트를 현재 언어로 짓기 위한 사전 스냅샷 (§2 i18n).
+    // 게임 루프는 React 밖이라 컨텍스트 대신 데이터를 직접 읽는다. CJK·아랍은 캔버스가
+    // 시스템 폰트로 폴백해 그린다(픽셀 톤은 en/ko만) — HTML UI와 같은 절충.
     const dict = getDict(resolveLang(settings.language));
+    /** fx.eat / fx.hit 같은 파이프(|) 구분 세트에서 하나를 랜덤으로 뽑는다. */
+    const fxWord = (key: "fx.eat" | "fx.hit"): string => {
+      const words = translate(dict, key).split("|");
+      return words[Math.floor(Math.random() * words.length)];
+    };
 
     /** 배경 달 위치·반지름 — 우상단 하트 HUD와 안 겹치게 아래로 내렸다 (task 1). */
     const moonSpot = () => ({ x: w - 56, y: 170, r: 26 });
@@ -343,7 +347,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
       vibrate(12); // 손끝에도 "냠" (§10) — 미지원 환경은 조용히 생략
       if (j.kind === "fuel") {
         fuel = Math.min(TUNE.maxFuel, fuel + 800);
-        popups.push(makePopup("FUEL UP!", j.x, j.y, COLORS.mascot));
+        popups.push(makePopup(translate(dict, "fx.fuel"), j.x, j.y, COLORS.mascot));
         playEat();
       } else if (j.kind === "star") {
         // 별 보너스 (§5): 하트가 닳아 있으면 점수 대신 하트 +1 —
@@ -361,17 +365,17 @@ function GameCore({ pet }: { pet: StoredPet }) {
       } else if (j.kind === "magnet") {
         // 자석 강화 (§5-2): 한동안 먹이가 훨씬 멀리서도 끌려온다
         magnetT = TUNE.powerupTime;
-        popups.push(makePopup("MAGNET!", j.x, j.y, JUNK_COLORS.magnet));
+        popups.push(makePopup(translate(dict, "fx.magnet"), j.x, j.y, JUNK_COLORS.magnet));
         playPowerup();
       } else if (j.kind === "slowmo") {
         // 시간 느려짐 (§5-2): 낙하물만 느려진다 — 주인공은 평소 속도
         slowT = TUNE.powerupTime;
-        popups.push(makePopup("SLOW-MO!", j.x, j.y, JUNK_COLORS.slowmo));
+        popups.push(makePopup(translate(dict, "fx.slowmo"), j.x, j.y, JUNK_COLORS.slowmo));
         playPowerup();
       } else if (j.kind === "shield") {
         // 방패 (§5-2): 다음 가시 한 방을 대신 맞아 준다 — 콤보 지킴이
         shield = true;
-        popups.push(makePopup("SHIELD!", j.x, j.y, JUNK_COLORS.shield));
+        popups.push(makePopup(translate(dict, "fx.shield"), j.x, j.y, JUNK_COLORS.shield));
         playPowerup();
       } else {
         // 콤보 (§5-1): 쓰레기 연속 획득마다 +1, 5개마다 배율이 오른다
@@ -381,16 +385,19 @@ function GameCore({ pet }: { pet: StoredPet }) {
         if (mult > prevMult) {
           // 배율 상승의 순간 — 팝업 + 팡파레로 확실하게 축하 (§10)
           popups.push(
-            makePopup(`COMBO x${mult}!`, mascot.x, mascot.y - mascot.r - 34, COLORS.accent),
+            makePopup(
+              translate(dict, "fx.combo", { n: mult }),
+              mascot.x,
+              mascot.y - mascot.r - 34,
+              COLORS.accent,
+            ),
           );
           playCombo();
         }
         score += 10 * mult;
         eaten += 1;
         mascot.r = Math.min(TUNE.maxR, mascot.r + TUNE.growPerEat);
-        popups.push(
-          makePopup(EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)], j.x, j.y),
-        );
+        popups.push(makePopup(fxWord("fx.eat"), j.x, j.y));
         playEat();
       }
 
@@ -399,7 +406,12 @@ function GameCore({ pet }: { pet: StoredPet }) {
       if (next > stage) {
         stage = next;
         popups.push(
-          makePopup(next === 1 ? "GEO ORBIT!" : "MOON ZONE!", w / 2, h * 0.3, COLORS.accent),
+          makePopup(
+            translate(dict, next === 1 ? "fx.geo" : "fx.moon"),
+            w / 2,
+            h * 0.3,
+            COLORS.accent,
+          ),
         );
         playStar(); // 고도 도달은 별을 먹은 만큼의 경사
       }
@@ -416,12 +428,7 @@ function GameCore({ pet }: { pet: StoredPet }) {
       sparks.push(...makeSparks(mascot.x, mascot.y, COLORS.danger, 10)); // 빨강 10개
       vibrate(90); // 아픈 일은 길게 — 먹기(12ms)와 확실히 구분 (§10)
       popups.push(
-        makePopup(
-          HIT_WORDS[Math.floor(Math.random() * HIT_WORDS.length)],
-          mascot.x,
-          mascot.y - mascot.r - 14,
-          COLORS.danger,
-        ),
+        makePopup(fxWord("fx.hit"), mascot.x, mascot.y - mascot.r - 14, COLORS.danger),
       );
       playHit();
       if (hearts <= 0) gameOver();
@@ -607,7 +614,12 @@ function GameCore({ pet }: { pet: StoredPet }) {
               shield = false;
               invincible = TUNE.shieldGrace;
               popups.push(
-                makePopup("BLOCKED!", mascot.x, mascot.y - mascot.r - 14, JUNK_COLORS.shield),
+                makePopup(
+                  translate(dict, "fx.blocked"),
+                  mascot.x,
+                  mascot.y - mascot.r - 14,
+                  JUNK_COLORS.shield,
+                ),
               );
               sparks.push(...makeSparks(mascot.x, mascot.y, JUNK_COLORS.shield, 7));
               playBlock();

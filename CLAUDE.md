@@ -45,11 +45,13 @@
 - **다국어(i18n) — HTML UI만 10개 언어, 캔버스는 영어 고정.** UI 텍스트(메뉴·설정·
   툴팁·버튼·스토리)는 사전(`src/lib/i18n/`)으로 10개 언어(en 기본·ko·ja·zh·es·fr·
   de·pt·ar·sw) 번역한다. 언어는 설정에서 고르며(기본 "auto"=브라우저 언어), 아랍어는
-  RTL(`<html dir="rtl">`). **캔버스에 그리는 아케이드 카피(SPACE JOOPS·GAME OVER·
-  YUM!·SCORE·LAT/LON 등)는 §2 규칙대로 영어 고정** — Press Start 2P가 라틴 전용이라
-  CJK가 안 나오고, 오락실 카피는 만국 공통이기 때문. ja·zh·ar 등은 픽셀 폰트에 글리프가
-  없어 시스템 폰트로 폴백한다(픽셀 톤은 en/ko만). 사전 키의 정본은 `dicts/en.ts`이고,
-  `type Dict = Record<키, string>`이라 번역이 빠지면 컴파일이 막힌다.
+  RTL(`<html dir="rtl">`). **브랜드·HUD 아케이드 간판(SPACE JOOPS·GAME OVER·SCORE·
+  TAP TO START·telemetry 라벨 LAT/LON 등)은 영어 고정** — 오락실 카피는 만국 공통이고
+  Press Start 2P가 라틴 전용이라 픽셀 톤이 산다. 단, **캐릭터 반응 팝업(YUM!·OUCH!·
+  FUEL UP!·COMBO·GEO ORBIT! 등, `fx.*` 키)은 언어 설정을 따라 번역**된다 — 캔버스
+  `fillText`가 CJK·아랍은 시스템 폰트로 폴백해 그린다(픽셀 톤은 en/ko만, HTML UI와 같은
+  절충). 사전 키의 정본은 `dicts/en.ts`이고, `type Dict = Record<키, string>`이라
+  번역이 빠지면 컴파일이 막힌다.
 
 ## 3. 핵심 게임 루프
 

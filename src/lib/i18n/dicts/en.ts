@@ -191,5 +191,16 @@ export const en = {
   "settings.langAuto": "Auto",
 
   // ---- 서비스 워커 ----
+  "fx.eat": "YUM!|GULP!|TASTY!|DELISH!|NICE!",
+  "fx.hit": "OUCH!|YIKES!|BOO!|ARGH!",
+  "fx.fuel": "FUEL UP!",
+  "fx.magnet": "MAGNET!",
+  "fx.slowmo": "SLOW-MO!",
+  "fx.shield": "SHIELD!",
+  "fx.combo": "COMBO x{n}!",
+  "fx.geo": "GEO ORBIT!",
+  "fx.moon": "MOON ZONE!",
+  "fx.blocked": "BLOCKED!",
+
   "sw.update": "🚀 New version available! Tap to update",
 } as const;

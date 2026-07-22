@@ -169,6 +169,17 @@ export const es: Dict = {
   "settings.orbitLink": "🛰️ Compruébalo en el Monitor de órbita",
   "settings.language": "Idioma",
   "settings.langAuto": "Automático",
+  "fx.eat": "¡ÑAM!|¡GLUP!|¡RICO!|¡BUENO!|¡SÍ!",
+  "fx.hit": "¡AY!|¡UY!|¡BUU!|¡ARGH!",
+  "fx.fuel": "¡A REPOSTAR!",
+  "fx.magnet": "¡IMÁN!",
+  "fx.slowmo": "¡LENTO!",
+  "fx.shield": "¡ESCUDO!",
+  "fx.combo": "¡COMBO x{n}!",
+  "fx.geo": "¡ÓRBITA GEO!",
+  "fx.moon": "¡ZONA LUNAR!",
+  "fx.blocked": "¡BLOQUEADO!",
+
 
   "sw.update": "🚀 ¡Nueva versión disponible! Toca para actualizar",
 };

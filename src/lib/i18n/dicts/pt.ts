@@ -169,6 +169,17 @@ export const pt: Dict = {
   "settings.orbitLink": "🛰️ Confira no Monitor de Órbita",
   "settings.language": "Idioma",
   "settings.langAuto": "Automático",
+  "fx.eat": "NHAM!|GLUP!|GOSTOSO!|ÓTIMO!|BOA!",
+  "fx.hit": "AI!|OPA!|BUU!|ARGH!",
+  "fx.fuel": "ABASTECIDO!",
+  "fx.magnet": "ÍMÃ!",
+  "fx.slowmo": "LENTO!",
+  "fx.shield": "ESCUDO!",
+  "fx.combo": "COMBO x{n}!",
+  "fx.geo": "ÓRBITA GEO!",
+  "fx.moon": "ZONA LUNAR!",
+  "fx.blocked": "BLOQUEADO!",
+
 
   "sw.update": "🚀 Nova versão disponível! Toque para atualizar",
 };

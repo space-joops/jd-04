@@ -169,6 +169,17 @@ export const zh: Dict = {
   "settings.orbitLink": "🛰️ 到轨道监视器里看看",
   "settings.language": "语言",
   "settings.langAuto": "自动",
+  "fx.eat": "好吃!|咕嘟!|美味!|赞!|嗯!",
+  "fx.hit": "哎哟!|呀!|噢!|啊!",
+  "fx.fuel": "补充燃料!",
+  "fx.magnet": "磁铁!",
+  "fx.slowmo": "慢动作!",
+  "fx.shield": "护盾!",
+  "fx.combo": "连击 x{n}!",
+  "fx.geo": "同步轨道!",
+  "fx.moon": "月球区!",
+  "fx.blocked": "挡住了!",
+
 
   "sw.update": "🚀 有新版本啦！点一下更新",
 };

@@ -172,6 +172,17 @@ export const ko: Dict = {
   "settings.orbitLink": "🛰️ 궤도 모니터에서 확인하기",
   "settings.language": "언어",
   "settings.langAuto": "자동",
+  "fx.eat": "냠냠!|꿀꺽!|맛나!|좋아!|냠!",
+  "fx.hit": "아야!|으악!|이런!|윽!",
+  "fx.fuel": "연료 충전!",
+  "fx.magnet": "자석!",
+  "fx.slowmo": "슬로모!",
+  "fx.shield": "방패!",
+  "fx.combo": "콤보 x{n}!",
+  "fx.geo": "정지궤도!",
+  "fx.moon": "달 근처!",
+  "fx.blocked": "막았다!",
+
 
   "sw.update": "🚀 새 버전 도착! 탭해서 업데이트",
 };

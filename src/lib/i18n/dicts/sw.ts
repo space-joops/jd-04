@@ -169,6 +169,17 @@ export const sw: Dict = {
   "settings.orbitLink": "🛰️ Iangalie katika Kifuatiliaji cha Mzunguko",
   "settings.language": "Lugha",
   "settings.langAuto": "Otomatiki",
+  "fx.eat": "TAMU!|MEZA!|NZURI!|POA!|NDIYO!",
+  "fx.hit": "AH!|LO!|OH!|BWANA!",
+  "fx.fuel": "JAZA MAFUTA!",
+  "fx.magnet": "SUMAKU!",
+  "fx.slowmo": "POLE-POLE!",
+  "fx.shield": "NGAO!",
+  "fx.combo": "MFULULIZO x{n}!",
+  "fx.geo": "OBITI GEO!",
+  "fx.moon": "ENEO LA MWEZI!",
+  "fx.blocked": "IMEZUIWA!",
+
 
   "sw.update": "🚀 Toleo jipya limepatikana! Gusa ili kusasisha",
 };

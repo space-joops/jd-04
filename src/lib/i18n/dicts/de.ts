@@ -169,6 +169,17 @@ export const de: Dict = {
   "settings.orbitLink": "🛰️ Im Orbit-Monitor ansehen",
   "settings.language": "Sprache",
   "settings.langAuto": "Automatisch",
+  "fx.eat": "MJAM!|SCHLUCK!|LECKER!|SUPER!|JA!",
+  "fx.hit": "AUA!|OJE!|BUH!|ARGH!",
+  "fx.fuel": "TANKEN!",
+  "fx.magnet": "MAGNET!",
+  "fx.slowmo": "ZEITLUPE!",
+  "fx.shield": "SCHILD!",
+  "fx.combo": "COMBO x{n}!",
+  "fx.geo": "GEO-ORBIT!",
+  "fx.moon": "MONDZONE!",
+  "fx.blocked": "GEBLOCKT!",
+
 
   "sw.update": "🚀 Neue Version verfügbar! Zum Aktualisieren tippen",
 };

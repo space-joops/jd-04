@@ -171,6 +171,17 @@ export const ja: Dict = {
   "settings.orbitLink": "🛰️ 軌道モニターで確認する",
   "settings.language": "言語",
   "settings.langAuto": "自動",
+  "fx.eat": "モグモグ!|ゴクリ!|おいしい!|やった!|うまっ!",
+  "fx.hit": "いたっ!|うわっ!|ああ!|うぐっ!",
+  "fx.fuel": "燃料補給!",
+  "fx.magnet": "マグネット!",
+  "fx.slowmo": "スロー!",
+  "fx.shield": "シールド!",
+  "fx.combo": "コンボ x{n}!",
+  "fx.geo": "静止軌道!",
+  "fx.moon": "月ゾーン!",
+  "fx.blocked": "ガード!",
+
 
   "sw.update": "🚀 新しいバージョンが届きました！タップして更新",
 };

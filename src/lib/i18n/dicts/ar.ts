@@ -169,6 +169,17 @@ export const ar: Dict = {
   "settings.orbitLink": "🛰️ تحقق منه في مراقب المدار",
   "settings.language": "اللغة",
   "settings.langAuto": "تلقائي",
+  "fx.eat": "لذيذ!|أمم!|رائع!|جميل!|نعم!",
+  "fx.hit": "آخ!|أوه!|آه!|أخ!",
+  "fx.fuel": "تزود بالوقود!",
+  "fx.magnet": "مغناطيس!",
+  "fx.slowmo": "تباطؤ!",
+  "fx.shield": "درع!",
+  "fx.combo": "كومبو x{n}!",
+  "fx.geo": "مدار ثابت!",
+  "fx.moon": "منطقة القمر!",
+  "fx.blocked": "صُدّ!",
+
 
   "sw.update": "🚀 إصدار جديد متاح! انقر للتحديث",
 };
