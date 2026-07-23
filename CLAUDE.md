@@ -463,9 +463,13 @@ uuid를 씨앗 삼아 궤도 요소(고도·경사각·승교점 경도·발사 
 - **OG 소셜 프리뷰**(`opengraph-image.tsx`·`twitter-image.tsx`): 링크를 펼칠 때 보이는
   1200×630 미리보기를 `next/og` ImageResponse로 코드 생성(에셋 0개 §11) — 아이콘과 같은
   마스코트 도트(`mascot-cells.ts`, pwa-icon과 공유)를 크게 얹는다. **기본은 영어**(크롤러가
-  읽는 정본). `layout.tsx`에 `metadataBase`(env `NEXT_PUBLIC_SITE_URL`/`VERCEL_URL`)와
-  `openGraph`·`twitter` 추가. 언어별 동적 OG는 `/og?lang=..`(`og/route.tsx`)가 같은
-  제너레이터로 만든다(§2). 픽셀 폰트는 싣지 않고(빌드 안정성 §12) 마스코트 도트가 정체성 담당.
+  읽는 정본). `layout.tsx`에 `metadataBase`와 `openGraph`·`twitter` 추가. **`metadataBase`는
+  크롤러가 열 수 있는 공개 절대 URL이어야 프리뷰가 뜬다** — 우선순위 `NEXT_PUBLIC_SITE_URL`
+  (커스텀 도메인 수동 지정) → `VERCEL_PROJECT_PRODUCTION_URL`(Vercel의 안정적 프로덕션 도메인,
+  배포마다 안 바뀜) → `VERCEL_URL`(per-deployment 폴백) → 로컬. Vercel 배포면 env 없이도
+  자동으로 프로덕션 도메인을 쓴다(배포 보호는 꺼져 있어야 크롤러 접근 가능). 언어별 동적 OG는
+  `/og?lang=..`(`og/route.tsx`)가 같은 제너레이터로 만든다(§2). 픽셀 폰트는 싣지 않고(빌드
+  안정성 §12) 마스코트 도트가 정체성 담당.
 - **공유하기**(`share-button.tsx`): 랜딩의 버튼 — `navigator.share`가 있으면 모바일 OS 공유
   시트, 없으면 링크 클립보드 복사 폴백. 공유 문구는 현재 언어(§2). 취소·미지원은 조용히(§12).
 - 접근성: 장식 요소에 `aria-hidden`, 포커스 링(focus-visible) 유지, HTML 텍스트로 정보 전달.
