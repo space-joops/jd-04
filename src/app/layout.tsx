@@ -3,11 +3,24 @@ import "./globals.css";
 import { I18nProvider } from "./i18n-provider";
 import { SwRegister } from "./sw-register";
 
-// 배포 도메인 — OG의 절대 URL 기준(metadataBase). Vercel은 배포마다 VERCEL_URL을
-// 준다. 직접 지정하고 싶으면 NEXT_PUBLIC_SITE_URL로 덮어쓴다. 없으면 로컬(§13).
+// 배포 도메인 — OG의 절대 URL 기준(metadataBase). 크롤러(카톡·트위터·슬랙)는
+// og:image를 이 절대 URL로 가져가므로, "공개적으로 열리는 프로덕션 주소"여야
+// 프리뷰가 뜬다(§13). 우선순위:
+//   1) NEXT_PUBLIC_SITE_URL — 커스텀 도메인·비-Vercel 배포용 수동 지정.
+//   2) VERCEL_PROJECT_PRODUCTION_URL — Vercel의 "안정적인 프로덕션 도메인"
+//      (예: jd-04.vercel.app). 배포마다 안 바뀌고 늘 프로덕션을 가리킨다.
+//   3) VERCEL_URL — per-deployment 프리뷰 URL(배포마다 바뀌고 배포 보호가
+//      켜져 있으면 크롤러가 401을 받는다). 프로덕션 도메인이 없을 때만 폴백.
+//   4) 로컬(dev).
+// ⚠️ 예전엔 2)를 건너뛰고 3)을 써서 og:image가 크롤러가 못 여는 주소로 나가
+//    프리뷰가 비었다 — 2)를 먼저 두는 것이 이 파일의 핵심 수정.
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3004");
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3004");
 
 // 전역 메타데이터 — 페이지별로 덮어쓸 수 있지만 기본값은 여기서.
 // OG/트위터 기본은 영어(§2) — 크롤러가 읽는 정본 이미지는 opengraph-image.tsx.
